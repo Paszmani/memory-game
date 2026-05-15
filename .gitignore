@@ -18,6 +18,30 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Native build folders
+android/
+ios/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
 # Metro
 .metro-health-check*
 
