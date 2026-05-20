@@ -1,6 +1,10 @@
-export function createId(prefix = 'id'): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).slice(2, 8);
+const RADIX = 36;
+const RANDOM_SLICE_START = 2;
+const RANDOM_SLICE_END = 9;
 
-  return `${prefix}-${timestamp}-${random}`;
+export function createId(prefix = 'id'): string {
+  const timestamp = Date.now().toString(RADIX);
+  const entropy  = Math.random().toString(RADIX).slice(RANDOM_SLICE_START, RANDOM_SLICE_END);
+
+  return `${prefix}_${timestamp}_${entropy}`;
 }

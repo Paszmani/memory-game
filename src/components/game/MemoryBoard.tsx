@@ -1,31 +1,40 @@
-import { FlatList, StyleSheet } from 'react-native';
+import React, { memo } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
 
 import { MemoryCard } from '@/components/game/MemoryCard';
+import { CardStyleSettings } from '@/types/settings';
 import { MemoryCard as MemoryCardType } from '@/types/game';
 
-type MemoryBoardProps = {
-  cards: MemoryCardType[];
-  columns: number;
-  onFlipCard: (cardId: string) => void;
-};
-
-export function MemoryBoard({ cards, columns, onFlipCard }: MemoryBoardProps) {
-  return (
-    <FlatList
-      key={columns}
-      data={cards}
-      numColumns={columns}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.content}
-      renderItem={({ item }) => (
-        <MemoryCard card={item} onPress={() => onFlipCard(item.id)} />
-      )}
-    />
-  );
+interface Props {
+  cards:     MemoryCardType[];
+  columns:   number;
+  cardStyle: CardStyleSettings;
+  onFlip:    (cardId: string) => void;
 }
+
+export const MemoryBoard = memo(({ cards, columns, cardStyle, onFlip }: Props) => (
+  <FlatList
+    key={`board-${columns}`}
+    data={cards}
+    numColumns={columns}
+    keyExtractor={(item) => item.id}
+    contentContainerStyle={styles.content}
+    scrollEnabled={false}
+    renderItem={({ item }) => (
+      <MemoryCard
+        card={item}
+        cardStyle={cardStyle}
+        onPress={() => onFlip(item.id)}
+      />
+    )}
+    removeClippedSubviews={false}
+  />
+));
+
+MemoryBoard.displayName = 'MemoryBoard';
 
 const styles = StyleSheet.create({
   content: {
-    paddingBottom: 20,
+    paddingBottom: 8,
   },
 });

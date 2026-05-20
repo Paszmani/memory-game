@@ -1,20 +1,22 @@
-export type CustomThemeCard = {
+export interface CustomThemeCard {
   id: string;
   label: string;
   emoji?: string;
   imageUri?: string;
-};
+}
 
-export type CustomTheme = {
+export interface CustomTheme {
   id: string;
   name: string;
+  description?: string;
   cards: CustomThemeCard[];
   isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
-};
+}
 
-export type CreateThemeInput = {
+export interface CreateThemeInput {
   name: string;
+  description?: string;
   cards: CustomThemeCard[];
-};
+}

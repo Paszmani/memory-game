@@ -2,7 +2,7 @@ export type CardId = string;
 
 export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'custom';
 
-export type MemoryCard = {
+export interface MemoryCard {
   id: CardId;
   pairId: string;
   label: string;
@@ -10,9 +10,9 @@ export type MemoryCard = {
   imageUri?: string;
   isFlipped: boolean;
   isMatched: boolean;
-};
+}
 
-export type GameResult = {
+export interface GameResult {
   id: string;
   themeId: string;
   themeName: string;
@@ -21,4 +21,11 @@ export type GameResult = {
   timeInSeconds: number;
   score: number;
   finishedAt: string;
-};
+}
+
+export interface GameStats {
+  moves: number;
+  elapsedSeconds: number;
+  score: number;
+  isFinished: boolean;
+}

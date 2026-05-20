@@ -1,43 +1,39 @@
 import { MemoryCard } from '@/types/game';
 import { CustomThemeCard } from '@/types/theme';
 
-export function createDeck(
-  themeCards: CustomThemeCard[],
-  pairCount: number,
-): MemoryCard[] {
-  const selectedCards = themeCards.slice(0, pairCount);
-
-  const duplicatedCards = selectedCards.flatMap((card) => [
-    createMemoryCard(card, 'a'),
-    createMemoryCard(card, 'b'),
-  ]);
-
-  return shuffleDeck(duplicatedCards);
-}
-
-function createMemoryCard(card: CustomThemeCard, copy: 'a' | 'b'): MemoryCard {
+function createMemoryCard(source: CustomThemeCard, copy: 'a' | 'b'): MemoryCard {
   return {
-    id: `${card.id}-${copy}`,
-    pairId: card.id,
-    label: card.label,
-    emoji: card.emoji,
-    imageUri: card.imageUri,
+    id:        `${source.id}_${copy}`,
+    pairId:    source.id,
+    label:     source.label,
+    emoji:     source.emoji,
+    imageUri:  source.imageUri,
     isFlipped: false,
     isMatched: false,
   };
 }
 
-export function shuffleDeck<T>(items: T[]): T[] {
+export function shuffleArray<T>(items: T[]): T[] {
   const shuffled = [...items];
 
-  for (let index = shuffled.length - 1; index > 0; index--) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-
-    [shuffled[index], shuffled[randomIndex]] = [
-      shuffled[randomIndex],
-      shuffled[index],
-    ];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
   return shuffled;
+}
+
+export function createDeck(
+  themeCards: CustomThemeCard[],
+  pairCount: number,
+): MemoryCard[] {
+  const selected = themeCards.slice(0, pairCount);
+
+  const doubled = selected.flatMap((card) => [
+    createMemoryCard(card, 'a'),
+    createMemoryCard(card, 'b'),
+  ]);
+
+  return shuffleArray(doubled);
 }

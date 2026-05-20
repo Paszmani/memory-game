@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 
 import { createDeck } from '@/domain/game/deckFactory';
@@ -11,132 +11,148 @@ import { MemoryCard } from '@/types/game';
 import { CustomThemeCard } from '@/types/theme';
 import { useTimer } from '@/hooks/useTimer';
 
-type UseMemoryGameParams = {
-  themeCards: CustomThemeCard[];
-  pairCount: number;
-};
+export interface UseMemoryGameParams {
+  themeCards:   CustomThemeCard[];
+  pairCount:    number;
+  flipDelayMs?: number;
+}
 
-export function useMemoryGame(params: UseMemoryGameParams) {
+export interface UseMemoryGameReturn {
+  cards:          MemoryCard[];
+  moves:          number;
+  elapsedSeconds: number;
+  isLocked:       boolean;
+  isFinished:     boolean;
+  flipCard:       (cardId: string) => void;
+  restartGame:    () => void;
+}
+
+const DEFAULT_FLIP_DELAY_MS = 800;
+
+function triggerMatchHaptic() {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+}
+
+function triggerMismatchHaptic() {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+}
+
+export function useMemoryGame({
+  themeCards,
+  pairCount,
+  flipDelayMs = DEFAULT_FLIP_DELAY_MS,
+}: UseMemoryGameParams): UseMemoryGameReturn {
   const timer = useTimer();
 
-  const initialDeck = useMemo(() => {
-    return createDeck(params.themeCards, params.pairCount);
-  }, [params.themeCards, params.pairCount]);
+  const initialDeck = useMemo(
+    () => createDeck(themeCards, pairCount),
+    [themeCards, pairCount],
+  );
 
-  const [cards, setCards] = useState<MemoryCard[]>(initialDeck);
-  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
-  const [moves, setMoves] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
-  const [isFinished, setIsFinished] = useState(false);
+  const [cards,         setCards]         = useState<MemoryCard[]>(initialDeck);
+  const [selectedIds,   setSelectedIds]   = useState<string[]>([]);
+  const [moves,         setMoves]         = useState(0);
+  const [isLocked,      setIsLocked]      = useState(false);
+  const [isFinished,    setIsFinished]    = useState(false);
 
+  const flipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearFlipTimeout = useCallback(() => {
+    if (flipTimeoutRef.current) {
+      clearTimeout(flipTimeoutRef.current);
+      flipTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Reinicia quando o deck muda
   useEffect(() => {
     setCards(initialDeck);
-    setSelectedCardIds([]);
+    setSelectedIds([]);
     setMoves(0);
     setIsLocked(false);
     setIsFinished(false);
     timer.reset();
-  }, [initialDeck]);
+    clearFlipTimeout();
+  }, [initialDeck, timer, clearFlipTimeout]);
+
+  // Cleanup ao desmontar
+  useEffect(() => () => clearFlipTimeout(), [clearFlipTimeout]);
 
   const restartGame = useCallback(() => {
-    setCards(createDeck(params.themeCards, params.pairCount));
-    setSelectedCardIds([]);
+    clearFlipTimeout();
+    setCards(createDeck(themeCards, pairCount));
+    setSelectedIds([]);
     setMoves(0);
     setIsLocked(false);
     setIsFinished(false);
     timer.reset();
-  }, [params.themeCards, params.pairCount, timer]);
+  }, [themeCards, pairCount, timer, clearFlipTimeout]);
 
   const flipCard = useCallback(
     (cardId: string) => {
-      if (isLocked || isFinished) {
-        return;
-      }
+      if (isLocked || isFinished) return;
 
-      const selectedCard = cards.find((card) => card.id === cardId);
+      const targetCard = cards.find((c) => c.id === cardId);
+      if (!targetCard || !canFlipCard(targetCard)) return;
 
-      if (!selectedCard || !canFlipCard(selectedCard)) {
-        return;
-      }
+      // Inicia o timer na primeira carta
+      const isFirstFlip = moves === 0 && selectedIds.length === 0;
+      if (!timer.isRunning && isFirstFlip) timer.start();
 
-      if (!timer.isRunning && moves === 0 && selectedCardIds.length === 0) {
-        timer.start();
-      }
-
-      const flippedCards = cards.map((card) =>
-        card.id === cardId ? { ...card, isFlipped: true } : card,
+      const withFlipped = cards.map((c) =>
+        c.id === cardId ? { ...c, isFlipped: true } : c,
       );
 
-      if (selectedCardIds.length === 0) {
-        setCards(flippedCards);
-        setSelectedCardIds([cardId]);
+      // Primeira carta selecionada
+      if (selectedIds.length === 0) {
+        setCards(withFlipped);
+        setSelectedIds([cardId]);
         return;
       }
 
-      if (selectedCardIds.length === 1) {
-        const firstCard = flippedCards.find(
-          (card) => card.id === selectedCardIds[0],
+      // Segunda carta — verifica par
+      const firstCard  = withFlipped.find((c) => c.id === selectedIds[0]);
+      const secondCard = withFlipped.find((c) => c.id === cardId);
+
+      if (!firstCard || !secondCard) return;
+
+      setMoves((prev) => prev + 1);
+
+      if (areCardsMatching(firstCard, secondCard)) {
+        const withMatched = withFlipped.map((c) =>
+          c.pairId === firstCard.pairId ? { ...c, isMatched: true } : c,
         );
 
-        const secondCard = flippedCards.find((card) => card.id === cardId);
+        setCards(withMatched);
+        setSelectedIds([]);
+        triggerMatchHaptic();
 
-        if (!firstCard || !secondCard) {
-          return;
+        if (hasFinishedGame(withMatched)) {
+          timer.stop();
+          setIsFinished(true);
         }
 
-        setMoves((currentMoves) => currentMoves + 1);
-
-        if (areCardsMatching(firstCard, secondCard)) {
-          const matchedCards = flippedCards.map((card) =>
-            card.pairId === firstCard.pairId
-              ? { ...card, isMatched: true }
-              : card,
-          );
-
-          setCards(matchedCards);
-          setSelectedCardIds([]);
-
-          void Haptics.notificationAsync(
-            Haptics.NotificationFeedbackType.Success,
-          );
-
-          if (hasFinishedGame(matchedCards)) {
-            timer.stop();
-            setIsFinished(true);
-          }
-
-          return;
-        }
-
-        setCards(flippedCards);
-        setIsLocked(true);
-
-        void Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Warning,
-        );
-
-        setTimeout(() => {
-          setCards((currentCards) =>
-            currentCards.map((card) =>
-              card.id === firstCard.id || card.id === secondCard.id
-                ? { ...card, isFlipped: false }
-                : card,
-            ),
-          );
-
-          setSelectedCardIds([]);
-          setIsLocked(false);
-        }, 800);
+        return;
       }
+
+      // Par incorreto — desvira após delay
+      setCards(withFlipped);
+      setIsLocked(true);
+      triggerMismatchHaptic();
+
+      flipTimeoutRef.current = setTimeout(() => {
+        setCards((current) =>
+          current.map((c) =>
+            c.id === firstCard.id || c.id === secondCard.id
+              ? { ...c, isFlipped: false }
+              : c,
+          ),
+        );
+        setSelectedIds([]);
+        setIsLocked(false);
+      }, flipDelayMs);
     },
-    [
-      cards,
-      isFinished,
-      isLocked,
-      moves,
-      selectedCardIds,
-      timer,
-    ],
+    [cards, isFinished, isLocked, moves, selectedIds, timer, flipDelayMs],
   );
 
   return {

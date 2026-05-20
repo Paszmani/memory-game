@@ -1,53 +1,80 @@
-import { ReactNode } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import React, { memo } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { colors } from '@/constants/colors';
 
-type ScreenContainerProps = {
-  children: ReactNode;
-  scroll?: boolean;
-};
+interface Props {
+  children:     React.ReactNode;
+  scroll?:      boolean;
+  padded?:      boolean;
+  style?:       ViewStyle;
+  contentStyle?: ViewStyle;
+}
 
-export function ScreenContainer({
+export const ScreenContainer = memo(({
   children,
-  scroll = true,
-}: ScreenContainerProps) {
+  scroll       = true,
+  padded       = true,
+  style,
+  contentStyle,
+}: Props) => {
+  const paddingStyle: ViewStyle = padded ? styles.padded : {};
+
   if (scroll) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safe, style]}>
         <StatusBar style="light" />
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {children}
-        </ScrollView>
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={[styles.scrollContent, paddingStyle, contentStyle]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safe, style]}>
       <StatusBar style="light" />
-      <View style={styles.content}>{children}</View>
+      <View style={[styles.flex, paddingStyle, contentStyle]}>
+        {children}
+      </View>
     </SafeAreaView>
   );
-}
+});
+
+ScreenContainer.displayName = 'ScreenContainer';
 
 const styles = StyleSheet.create({
-  safeArea: {
+  safe: {
     flex: 1,
     backgroundColor: colors.background,
   },
+  flex: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
-    gap: 16,
+    gap:      16,
   },
-  content: {
-    flex: 1,
+  padded: {
     padding: 20,
-    gap: 16,
   },
 });

@@ -53,6 +53,7 @@ export default function CustomizeScreen() {
       theme.cards.length,
     );
 
+    
     if (pairCount < 2) {
       Alert.alert(
         'Tema incompleto',

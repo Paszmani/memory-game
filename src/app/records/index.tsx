@@ -100,6 +100,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 18,
     padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     borderWidth: 1,
     borderColor: colors.border,
@@ -108,22 +110,26 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 18,
     fontWeight: '900',
+    width: 36,
   },
   recordInfo: {
+    flex: 1, 
     gap: 3,
   },
   themeName: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 16, 
     fontWeight: '800',
   },
   meta: {
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: 13,
   },
   score: {
     color: colors.success,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
+    textAlign: 'right',
+    minWidth: 60,
   },
 });

@@ -1,17 +1,22 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import React, { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 
 import { colors } from '@/constants/colors';
 import { CustomThemeCard } from '@/types/theme';
 
-type CustomCardPreviewProps = {
-  card: CustomThemeCard;
+interface Props {
+  card:     CustomThemeCard;
   onRemove: () => void;
-};
+}
 
-export function CustomCardPreview({ card, onRemove }: CustomCardPreviewProps) {
-  return (
-    <Pressable onLongPress={onRemove} style={styles.container}>
+export const CustomCardPreview = memo(({ card, onRemove }: Props) => (
+  <Pressable
+    onLongPress={onRemove}
+    style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+    accessibilityHint="Segure para remover"
+  >
+    <View style={styles.media}>
       {card.imageUri ? (
         <Image
           source={{ uri: card.imageUri }}
@@ -21,43 +26,56 @@ export function CustomCardPreview({ card, onRemove }: CustomCardPreviewProps) {
       ) : (
         <Text style={styles.emoji}>{card.emoji}</Text>
       )}
+    </View>
 
-      <Text style={styles.label} numberOfLines={1}>
-        {card.label}
-      </Text>
-      <Text style={styles.hint}>Segure para remover</Text>
-    </Pressable>
-  );
-}
+    <Text style={styles.label} numberOfLines={1}>{card.label}</Text>
+    <Text style={styles.hint}>Segure p/ remover</Text>
+  </Pressable>
+));
+
+CustomCardPreview.displayName = 'CustomCardPreview';
 
 const styles = StyleSheet.create({
   container: {
-    width: '30%',
-    minWidth: 92,
+    width:           '30%',
+    minWidth:        95,
     backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 10,
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius:    16,
+    padding:         10,
+    alignItems:      'center',
+    gap:             6,
+    borderWidth:     1,
+    borderColor:     colors.border,
+  },
+  pressed: {
+    opacity:   0.75,
+    transform: [{ scale: 0.97 }],
+  },
+  media: {
+    width:           62,
+    height:          62,
+    borderRadius:    12,
+    overflow:        'hidden',
+    backgroundColor: colors.surfaceLight,
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   image: {
-    width: 58,
-    height: 58,
-    borderRadius: 12,
+    width:  '100%',
+    height: '100%',
   },
   emoji: {
-    fontSize: 40,
+    fontSize: 38,
   },
   label: {
-    color: colors.text,
+    color:      colors.text,
     fontWeight: '700',
-    fontSize: 13,
+    fontSize:   13,
+    textAlign:  'center',
   },
   hint: {
-    color: colors.textMuted,
-    fontSize: 10,
+    color:     colors.textMuted,
+    fontSize:  10,
     textAlign: 'center',
   },
 });
