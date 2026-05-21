@@ -1,55 +1,98 @@
 import React, { memo } from 'react';
-import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
 
-import { BackgroundSettings } from '@/types/settings';
+import {
+  ImageBackground,
+  Platform,
+  StyleSheet,
+  View,
+  ViewStyle,
+} from 'react-native';
+
+import type { BackgroundSettings } from '@/types/settings';
 
 interface Props {
   settings: BackgroundSettings;
   children: React.ReactNode;
-  style?:   ViewStyle;
+  style?: ViewStyle;
 }
 
-const GRADIENT_DIRECTIONS: Record<string, string> = {
-  vertical:   'to bottom',
+const GRADIENT_DIRECTIONS: Record<
+  BackgroundSettings['gradientDirection'],
+  string
+> = {
+  vertical: 'to bottom',
   horizontal: 'to right',
-  diagonal:   'to bottom right',
+  diagonal: 'to bottom right',
 };
 
-function buildWebStyle(settings: BackgroundSettings): object {
+function buildWebStyle(settings: BackgroundSettings): ViewStyle {
   if (settings.type === 'image' && settings.imageUri) {
     return {
-      backgroundImage:    `url(${settings.imageUri})`,
-      backgroundSize:     'cover',
+      backgroundImage: `linear-gradient(rgba(0,0,0,${settings.overlayOpacity}), rgba(0,0,0,${settings.overlayOpacity})), url(${settings.imageUri})`,
+      backgroundSize: 'cover',
       backgroundPosition: 'center',
-    };
+    } as ViewStyle;
   }
 
   if (settings.type === 'gradient') {
-    const direction = GRADIENT_DIRECTIONS[settings.gradientDirection] ?? 'to bottom';
+    const direction =
+      GRADIENT_DIRECTIONS[settings.gradientDirection] ?? 'to bottom';
+
     return {
       background: `linear-gradient(${direction}, ${settings.gradientStart}, ${settings.gradientEnd})`,
-    };
+    } as ViewStyle;
   }
 
-  return { backgroundColor: settings.solidColor };
+  return {
+    backgroundColor: settings.solidColor,
+  };
+}
+
+function getNativeBackgroundColor(settings: BackgroundSettings) {
+  if (settings.type === 'gradient') {
+    return settings.gradientStart;
+  }
+
+  return settings.solidColor;
 }
 
 export const GradientBackground = memo(({ settings, children, style }: Props) => {
-  const dynamicStyle = Platform.OS === 'web'
-    ? buildWebStyle(settings)
-    : { backgroundColor: settings.solidColor };
+  if (settings.type === 'image' && settings.imageUri && Platform.OS !== 'web') {
+    return (
+      <ImageBackground
+        source={{ uri: settings.imageUri }}
+        resizeMode="cover"
+        style={[styles.container, style]}
+      >
+        <View
+          style={[
+            styles.overlay,
+            {
+              backgroundColor: `rgba(0,0,0,${settings.overlayOpacity})`,
+            },
+          ]}
+        >
+          {children}
+        </View>
+      </ImageBackground>
+    );
+  }
 
-  return (
-    <View style={[styles.container, dynamicStyle as ViewStyle, style]}>
-      {children}
-    </View>
-  );
+  const dynamicStyle =
+    Platform.OS === 'web'
+      ? buildWebStyle(settings)
+      : { backgroundColor: getNativeBackgroundColor(settings) };
+
+  return <View style={[styles.container, dynamicStyle, style]}>{children}</View>;
 });
 
 GradientBackground.displayName = 'GradientBackground';
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  overlay: {
     flex: 1,
   },
 });

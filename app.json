@@ -22,7 +22,8 @@
         "backgroundColor": "#0A0F1E"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.memorygame.totem"
+      "package": "com.memorygame.totem",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "bundler": "metro",
