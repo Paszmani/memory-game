@@ -1,135 +1,86 @@
+import React from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
-import { AppButton } from '@/components/ui/AppButton';
+import { AppButton }       from '@/components/ui/AppButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { colors } from '@/constants/colors';
-import { DIFFICULTIES } from '@/constants/difficulty';
-import { useRecords } from '@/hooks/useRecords';
-import { formatDateTime, formatSeconds } from '@/utils/format';
+import { SectionCard }     from '@/components/ui/SectionCard';
+import { colors }          from '@/constants/colors';
+import { DIFFICULTIES }    from '@/constants/difficulty';
+import { useRecords }      from '@/hooks/useRecords';
+import { formatDateTime, formatScore, formatSeconds } from '@/utils/format';
+
+const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default function RecordsScreen() {
   const { records, isLoading, clearRecords } = useRecords();
 
-  function handleClearRecords() {
+  function handleClear() {
     Alert.alert(
       'Limpar recordes',
-      'Tem certeza que deseja apagar todos os recordes?',
+      'Deseja apagar todos os recordes salvos?',
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Apagar',
-          style: 'destructive',
-          onPress: () => {
-            void clearRecords();
-          },
-        },
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Apagar', style: 'destructive', onPress: clearRecords },
       ],
     );
   }
 
   return (
     <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.title}>Recordes</Text>
+      <SectionCard>
+        <Text style={styles.title}>🏆 Recordes</Text>
         <Text style={styles.subtitle}>
-          Os melhores resultados ficam salvos neste dispositivo.
+          Os melhores resultados salvos neste dispositivo.
         </Text>
-      </View>
+      </SectionCard>
 
       {isLoading ? (
-        <Text style={styles.emptyText}>Carregando recordes...</Text>
+        <Text style={styles.emptyText}>Carregando...</Text>
       ) : records.length === 0 ? (
-        <Text style={styles.emptyText}>Nenhum recorde salvo ainda.</Text>
+        <Text style={styles.emptyText}>Nenhum recorde ainda. Jogue para aparecer aqui!</Text>
       ) : (
         records.map((record, index) => (
-          <View key={record.id} style={styles.recordCard}>
-            <Text style={styles.position}>#{index + 1}</Text>
+          <View key={record.id} style={styles.card}>
+            <Text style={styles.medal}>{MEDALS[index] ?? `#${index + 1}`}</Text>
 
-            <View style={styles.recordInfo}>
+            <View style={styles.info}>
               <Text style={styles.themeName}>{record.themeName}</Text>
               <Text style={styles.meta}>
-                Dificuldade: {DIFFICULTIES[record.difficulty].label}
+                {DIFFICULTIES[record.difficulty].label} · {formatSeconds(record.timeInSeconds)} · {record.moves} jogadas
               </Text>
-              <Text style={styles.meta}>
-                Tempo: {formatSeconds(record.timeInSeconds)}
-              </Text>
-              <Text style={styles.meta}>Jogadas: {record.moves}</Text>
-              <Text style={styles.meta}>
-                Data: {formatDateTime(record.finishedAt)}
-              </Text>
+              <Text style={styles.date}>{formatDateTime(record.finishedAt)}</Text>
             </View>
 
-            <Text style={styles.score}>{record.score}</Text>
+            <Text style={styles.score}>{formatScore(record.score)}</Text>
           </View>
         ))
       )}
 
       {records.length > 0 && (
-        <AppButton
-          title="Limpar recordes"
-          onPress={handleClearRecords}
-          variant="danger"
-        />
+        <AppButton title="🗑️ Limpar recordes" onPress={handleClear} variant="danger" />
       )}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 8,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: '900',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 16,
-    lineHeight: 23,
-  },
-  emptyText: {
-    color: colors.textMuted,
-    fontSize: 16,
-  },
-  recordCard: {
+  title:    { color: colors.text,    fontSize: 28, fontWeight: '900' },
+  subtitle: { color: colors.textMuted, fontSize: 15 },
+  emptyText:{ color: colors.textMuted, fontSize: 16, textAlign: 'center', paddingVertical: 20 },
+  card: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             12,
     backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius:    18,
+    padding:         16,
+    borderWidth:     1,
+    borderColor:     colors.border,
   },
-  position: {
-    color: colors.primary,
-    fontSize: 18,
-    fontWeight: '900',
-    width: 36,
-  },
-  recordInfo: {
-    flex: 1, 
-    gap: 3,
-  },
-  themeName: {
-    color: colors.text,
-    fontSize: 16, 
-    fontWeight: '800',
-  },
-  meta: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  score: {
-    color: colors.success,
-    fontSize: 22,
-    fontWeight: '900',
-    textAlign: 'right',
-    minWidth: 60,
-  },
+  medal:    { fontSize: 28 },
+  info:     { flex: 1, gap: 3 },
+  themeName:{ color: colors.text,         fontSize: 16, fontWeight: '700' },
+  meta:     { color: colors.textSecondary, fontSize: 13 },
+  date:     { color: colors.textMuted,    fontSize: 12 },
+  score:    { color: colors.primary,      fontSize: 22, fontWeight: '900' },
 });

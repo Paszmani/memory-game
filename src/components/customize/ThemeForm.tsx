@@ -1,188 +1,179 @@
-import { useState } from 'react';
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import React, { memo, useState } from 'react';
+import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { CustomCardPreview } from '@/components/customize/CustomCardPreview';
 import { ImagePickerButton } from '@/components/customize/ImagePickerButton';
 import { AppButton } from '@/components/ui/AppButton';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { colors } from '@/constants/colors';
 import { CreateThemeInput, CustomThemeCard } from '@/types/theme';
 import { createId } from '@/utils/id';
 
-type ThemeFormProps = {
+interface Props {
   onSubmit: (input: CreateThemeInput) => Promise<void>;
-};
+}
 
-export function ThemeForm({ onSubmit }: ThemeFormProps) {
-  const [themeName, setThemeName] = useState('');
-  const [emojiValue, setEmojiValue] = useState('');
-  const [cards, setCards] = useState<CustomThemeCard[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
+const EMPTY_STATE = { name: '', description: '', emoji: '' };
+
+export const ThemeForm = memo(({ onSubmit }: Props) => {
+  const [fields,    setFields]    = useState(EMPTY_STATE);
+  const [cards,     setCards]     = useState<CustomThemeCard[]>([]);
+  const [isSaving,  setIsSaving]  = useState(false);
+
+  function setField(key: keyof typeof EMPTY_STATE, value: string) {
+    setFields((prev) => ({ ...prev, [key]: value }));
+  }
 
   function addEmojiCard() {
-    const normalizedEmoji = emojiValue.trim();
-
-    if (!normalizedEmoji) {
+    const emoji = fields.emoji.trim();
+    if (!emoji) {
       Alert.alert('Emoji inválido', 'Digite um emoji antes de adicionar.');
       return;
     }
 
-    const newCard: CustomThemeCard = {
-      id: createId('card'),
+    const card: CustomThemeCard = {
+      id:    createId('card'),
       label: `Emoji ${cards.length + 1}`,
-      emoji: normalizedEmoji,
+      emoji,
     };
 
-    setCards((currentCards) => [...currentCards, newCard]);
-    setEmojiValue('');
+    setCards((prev) => [...prev, card]);
+    setField('emoji', '');
   }
 
   function addImageCard(uri: string) {
-    const newCard: CustomThemeCard = {
-      id: createId('card'),
-      label: `Imagem ${cards.length + 1}`,
+    const card: CustomThemeCard = {
+      id:       createId('card'),
+      label:    `Imagem ${cards.length + 1}`,
       imageUri: uri,
     };
-
-    setCards((currentCards) => [...currentCards, newCard]);
+    setCards((prev) => [...prev, card]);
   }
 
   function removeCard(cardId: string) {
-    setCards((currentCards) =>
-      currentCards.filter((card) => card.id !== cardId),
-    );
+    setCards((prev) => prev.filter((c) => c.id !== cardId));
   }
 
   async function handleSave() {
     setIsSaving(true);
-
     try {
       await onSubmit({
-        name: themeName,
+        name:        fields.name,
+        description: fields.description || undefined,
         cards,
       });
-
-      setThemeName('');
-      setEmojiValue('');
+      setFields(EMPTY_STATE);
       setCards([]);
-
-      Alert.alert('Tema salvo', 'Seu tema personalizado foi criado.');
+      Alert.alert('✅ Tema criado', 'Seu tema personalizado foi salvo!');
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível salvar o tema.';
-
-      Alert.alert('Erro ao salvar', message);
+      const msg = error instanceof Error ? error.message : 'Erro ao salvar o tema.';
+      Alert.alert('Erro', msg);
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Criar tema personalizado</Text>
+    <SectionCard title="Criar novo tema">
+      <TextInput
+        value={fields.name}
+        onChangeText={(v) => setField('name', v)}
+        placeholder="Nome do tema  (ex: Animais)"
+        placeholderTextColor={colors.textMuted}
+        style={styles.input}
+      />
 
-      <View style={styles.field}>
-        <Text style={styles.label}>Nome do tema</Text>
+      <TextInput
+        value={fields.description}
+        onChangeText={(v) => setField('description', v)}
+        placeholder="Descrição (opcional)"
+        placeholderTextColor={colors.textMuted}
+        style={styles.input}
+      />
+
+      {/* Adicionar emoji */}
+      <View style={styles.row}>
         <TextInput
-          value={themeName}
-          onChangeText={setThemeName}
-          placeholder="Ex: Animais, Família, Carros..."
+          value={fields.emoji}
+          onChangeText={(v) => setField('emoji', v)}
+          placeholder="🐱 Digite um emoji"
           placeholderTextColor={colors.textMuted}
-          style={styles.input}
+          style={[styles.input, styles.emojiInput]}
         />
-      </View>
-
-      <View style={styles.field}>
-        <Text style={styles.label}>Adicionar emoji</Text>
-        <View style={styles.inline}>
-          <TextInput
-            value={emojiValue}
-            onChangeText={setEmojiValue}
-            placeholder="🐱"
-            placeholderTextColor={colors.textMuted}
-            style={[styles.input, styles.emojiInput]}
-          />
-          <AppButton title="Adicionar" onPress={addEmojiCard} />
-        </View>
+        <AppButton title="+" onPress={addEmojiCard} size="md" style={styles.addBtn} />
       </View>
 
       <ImagePickerButton onImagePicked={addImageCard} />
 
-      <View style={styles.cardsContainer}>
-        {cards.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma carta adicionada ainda.</Text>
-        ) : (
-          cards.map((card) => (
-            <CustomCardPreview
-              key={card.id}
-              card={card}
-              onRemove={() => removeCard(card.id)}
-            />
-          ))
-        )}
-      </View>
+      {/* Preview das cartas */}
+      {cards.length > 0 ? (
+        <>
+          <Text style={styles.cardsLabel}>{cards.length} carta(s) adicionada(s)</Text>
+          <View style={styles.cardsGrid}>
+            {cards.map((card) => (
+              <CustomCardPreview
+                key={card.id}
+                card={card}
+                onRemove={() => removeCard(card.id)}
+              />
+            ))}
+          </View>
+        </>
+      ) : (
+        <Text style={styles.emptyHint}>Adicione emojis ou imagens acima para criar cartas.</Text>
+      )}
 
       <AppButton
         title={isSaving ? 'Salvando...' : 'Salvar tema'}
         onPress={handleSave}
-        disabled={isSaving}
+        disabled={isSaving || cards.length < 2 || !fields.name.trim()}
+        fullWidth
+        size="lg"
       />
-    </View>
+    </SectionCard>
   );
-}
+});
+
+ThemeForm.displayName = 'ThemeForm';
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: 16,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  field: {
-    gap: 8,
-  },
-  label: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '700',
-  },
   input: {
-    minHeight: 48,
-    backgroundColor: colors.background,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
+    minHeight:        50,
+    backgroundColor:  colors.background,
+    borderRadius:     14,
+    paddingHorizontal: 16,
+    color:            colors.text,
+    borderWidth:      1,
+    borderColor:      colors.border,
+    fontSize:         15,
   },
-  inline: {
+  row: {
     flexDirection: 'row',
-    gap: 10,
+    gap:           10,
+    alignItems:    'center',
   },
   emojiInput: {
-    flex: 1,
-    fontSize: 24,
+    flex:     1,
+    fontSize: 22,
   },
-  cardsContainer: {
+  addBtn: {
+    width:  52,
+    height: 52,
+  },
+  cardsLabel: {
+    color:      colors.textSecondary,
+    fontSize:   13,
+    fontWeight: '600',
+  },
+  cardsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    flexWrap:      'wrap',
+    gap:           8,
   },
-  emptyText: {
-    color: colors.textMuted,
+  emptyHint: {
+    color:     colors.textMuted,
+    fontSize:  14,
+    textAlign: 'center',
+    paddingVertical: 8,
   },
 });

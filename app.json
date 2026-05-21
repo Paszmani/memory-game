@@ -1,34 +1,49 @@
 {
   "expo": {
-    "name": "sb-matching-game",
-    "slug": "sb-matching-game",
+    "name": "Jogo da Memória",
+    "slug": "memory-game-totem",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0A0F1E"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.memorygame.totem"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/sb-logo-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0F1E"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.memorygame.totem"
     },
     "web": {
-      "favicon": "./assets/sb-logo-adaptive-icon.png"
+      "bundler": "metro",
+      "output":  "static",
+      "favicon": "./assets/favicon.png",
+      "name":    "Jogo da Memória",
+      "shortName": "Memória",
+      "description": "Jogo da memória customizável para totem",
+      "backgroundColor": "#0A0F1E",
+      "themeColor":      "#4FC3F7",
+      "lang":            "pt-BR",
+      "scope":           "/",
+      "startUrl":        "/"
     },
     "plugins": [
       "expo-audio",
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        { "photosPermission": "O app precisa acessar suas fotos para personalizar o jogo." }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
