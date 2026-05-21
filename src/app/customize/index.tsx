@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { confirmAction, showDialogMessage } from '@/utils/dialog';
 
 import { BackgroundPicker }  from '@/components/customize/BackgroundPicker';
 import { BrandingEditor }    from '@/components/customize/BrandingEditor';
@@ -14,6 +15,7 @@ import { useAppSettings }    from '@/hooks/useAppSettings';
 import { useThemeManager }   from '@/hooks/useThemeManager';
 import { CustomTheme }       from '@/types/theme';
 import { router }            from 'expo-router';
+import type { AppSettings } from '@/types/settings';
 
 type Tab = 'themes' | 'appearance' | 'totem';
 
@@ -28,20 +30,23 @@ export default function CustomizeScreen() {
   const { settings, updateSettings } = useAppSettings();
   const { themes, addTheme, removeTheme } = useThemeManager();
 
-  const handleDeleteTheme = useCallback((theme: CustomTheme) => {
+  const handleDeleteTheme = useCallback(
+  (theme: CustomTheme) => {
     if (theme.isDefault) {
-      Alert.alert('Tema padrão', 'O tema padrão não pode ser removido.');
+      showDialogMessage('Tema padrão', 'O tema padrão não pode ser removido.');
       return;
     }
-    Alert.alert(
-      'Remover tema',
-      `Deseja remover "${theme.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Remover', style: 'destructive', onPress: () => void removeTheme(theme.id) },
-      ],
-    );
-  }, [removeTheme]);
+
+    confirmAction({
+      title: 'Remover tema',
+      message: `Deseja remover "${theme.name}"?`,
+      confirmText: 'Remover',
+      destructive: true,
+      onConfirm: () => removeTheme(theme.id),
+    });
+  },
+  [removeTheme],
+);
 
   return (
     <ScreenContainer>
@@ -122,7 +127,7 @@ export default function CustomizeScreen() {
       {activeTab === 'totem' && (
         <TotemSettings
           value={settings.totem}
-          onChange={(t) => updateSettings({ totem: t })}
+          onChange={(totem) => void updateSettings({ totem })}
         />
       )}
     </ScreenContainer>
@@ -130,32 +135,30 @@ export default function CustomizeScreen() {
 }
 
 // Sub-componente de configurações de Totem
-function TotemSettings({
-  value,
-  onChange,
-}: {
-  value: typeof DIFFICULTIES[keyof typeof DIFFICULTIES] extends never ? never : Parameters<typeof import('@/hooks/useAppSettings').useAppSettings>[0] extends never ? never : import('@/types/settings').AppSettings['totem'];
-  onChange: (v: Partial<import('@/types/settings').AppSettings['totem']>) => void;
-}) {
-  const { settings: appSettings, updateSettings } = import('@/hooks/useAppSettings').useAppSettings
-    ? { settings: { totem: value }, updateSettings: (v: unknown) => onChange(v as never) }
-    : { settings: { totem: value }, updateSettings: (v: unknown) => onChange(v as never) };
+type TotemSettingsProps = {
+  value: AppSettings['totem'];
+  onChange: (value: Partial<AppSettings['totem']>) => void;
+};
 
+function TotemSettings({ value, onChange }: TotemSettingsProps) {
   return (
-    <SectionCard title="Configurações de Totem">
+    <SectionCard title="Configurações do Totem">
       <TotemToggle
-        label="Tela de atração (atrair visitantes)"
+        label="Tela de atração ativada"
         value={value.attractScreenEnabled}
         onToggle={(v) => onChange({ attractScreenEnabled: v })}
       />
+
       <TotemToggle
-        label="Modo quiosque (esconde navegação)"
+        label="Modo kiosk"
         value={value.kioskMode}
         onToggle={(v) => onChange({ kioskMode: v })}
       />
+
       <Text style={styles.totemInfo}>
         Tempo de inatividade: {value.attractTimeoutSeconds}s
       </Text>
+
       <Text style={styles.totemInfo}>
         Auto-resetar após fim: {value.autoResetAfterFinishSeconds}s
       </Text>

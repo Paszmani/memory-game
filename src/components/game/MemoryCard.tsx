@@ -80,7 +80,7 @@ export const MemoryCard = memo(({ card, onPress, cardStyle, animated = true }: P
               borderColor,
               borderRadius,
               borderWidth:     cardStyle.borderWidth,
-              transform:       [{ rotateY: backRotate }],
+              transform: [{ perspective: 1000 }, { rotateY: backRotate }],
             },
           ]}
         >
@@ -99,7 +99,7 @@ export const MemoryCard = memo(({ card, onPress, cardStyle, animated = true }: P
               borderColor,
               borderRadius,
               borderWidth:     cardStyle.borderWidth,
-              transform:       [{ rotateY: frontRotate }],
+              transform: [{ perspective: 1000 }, { rotateY: frontRotate }],
             },
           ]}
         >

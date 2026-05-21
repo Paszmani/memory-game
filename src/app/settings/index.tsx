@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import { confirmAction, showDialogMessage } from '@/utils/dialog';
 
 import { AppButton }       from '@/components/ui/AppButton';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -14,32 +15,26 @@ export default function SettingsScreen() {
   const { gameBehavior, totem } = settings;
 
   function handleResetAll() {
-    Alert.alert(
-      'Redefinir tudo',
-      'Isso apagará todas as configurações e voltará ao padrão.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Redefinir', style: 'destructive', onPress: () => void resetSettings() },
-      ],
-    );
+    confirmAction({
+      title: 'Redefinir tudo',
+      message: 'Isso apagará todas as configurações e voltará ao padrão.',
+      confirmText: 'Redefinir',
+      destructive: true,
+      onConfirm: resetSettings,
+    });
   }
 
   function handleClearData() {
-    Alert.alert(
-      'Apagar dados do jogo',
-      'Isso apagará recordes e temas personalizados.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Apagar',
-          style: 'destructive',
-          onPress: async () => {
-            await Promise.all([clearGameResults(), clearCustomThemes()]);
-            Alert.alert('Pronto', 'Dados apagados com sucesso.');
-          },
-        },
-      ],
-    );
+    confirmAction({
+      title: 'Apagar dados do jogo',
+      message: 'Isso apagará recordes e temas personalizados.',
+      confirmText: 'Apagar',
+      destructive: true,
+      onConfirm: async () => {
+        await Promise.all([clearGameResults(), clearCustomThemes()]);
+        showDialogMessage('Pronto', 'Dados apagados com sucesso.');
+      },
+    });
   }
 
   return (
