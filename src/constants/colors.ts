@@ -1,29 +1,29 @@
 export const colors = {
-  background:       'rgb(10, 10, 10)',
-  surface:          '#141B2D',
-  surfaceElevated:  '#1E2A42',
-  surfaceLight:     '#2A3A5C',
 
-  primary:          '#4FC3F7',
-  primaryDark:      '#0288D1',
-  primaryGlow:      'rgba(79, 195, 247, 0.2)',
+  background:      '#0A0A0A',
+  surface:         '#141414',
+  surfaceElevated: '#1E1E1E',
+  surfaceLight:    '#2A2A2A',
 
-  success:          '#00E676',
-  successGlow:      'rgba(0, 230, 118, 0.15)',
-  danger:           '#FF5252',
-  dangerGlow:       'rgba(255, 82, 82, 0.15)',
-  warning:          '#FFD740',
+  primary:         '#FFD600',
+  primaryDark:     '#FFC000',
+  primaryGlow:     'rgba(255, 214, 0, 0.18)',
 
-  text:             '#F0F4FF',
-  textSecondary:    '#B0BEC5',
-  textMuted:        '#607D8B',
+  success:         '#FFFFFF',
+  successGlow:     'rgba(255, 255, 255, 0.12)',
+  danger:          '#FF4444',
+  warning:         '#FF8800',
 
-  border:           '#2A3A5C',
-  borderLight:      '#3D5270',
+  text:            '#FFFFFF',
+  textSecondary:   '#CCCCCC',
+  textMuted:       '#777777',
 
-  overlay:          'rgba(10, 15, 30, 0.88)',
-  glass:            'rgba(20, 27, 45, 0.75)',
-  glassBorder:      'rgba(79, 195, 247, 0.15)',
+  border:          '#2A2A2A',
+  borderLight:     '#3A3A3A',
+
+  overlay:         'rgba(0, 0, 0, 0.90)',
+  glass:           'rgba(20, 20, 20, 0.80)',
+  glassBorder:     'rgba(255, 214, 0, 0.25)',
 } as const;
 
 export type ColorKey = keyof typeof colors;

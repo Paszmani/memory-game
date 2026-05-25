@@ -7,6 +7,8 @@ import {
   resetAppSettings,
 } from '@/services/settingsService';
 import { AppSettings, DeepPartial } from '@/types/settings';
+import { useSettings } from '@/contexts/SettingsContext';
+
 
 export interface UseAppSettingsReturn {
   settings:       AppSettings;
@@ -58,5 +60,7 @@ export function useAppSettings(): UseAppSettingsReturn {
     setSettings(defaults);
   }, []);
 
+  return useSettings();
   return { settings, isLoading, updateSettings, saveSettings, resetSettings };
+   
 }

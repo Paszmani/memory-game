@@ -2,85 +2,71 @@ import React from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton }       from '@/components/ui/AppButton';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionCard }     from '@/components/ui/SectionCard';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { colors }          from '@/constants/colors';
-import { DIFFICULTIES }    from '@/constants/difficulty';
 import { useRecords }      from '@/hooks/useRecords';
-import { formatDateTime, formatScore, formatSeconds } from '@/utils/format';
-
-const MEDALS = ['🥇', '🥈', '🥉'];
+import { formatDateTime, formatSeconds } from '@/utils/format';
 
 export default function RecordsScreen() {
   const { records, isLoading, clearRecords } = useRecords();
 
   function handleClear() {
-    Alert.alert(
-      'Limpar recordes',
-      'Deseja apagar todos os recordes salvos?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Apagar', style: 'destructive', onPress: clearRecords },
-      ],
-    );
+    Alert.alert('Limpar histórico', 'Deseja apagar todas as partidas?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Apagar', style: 'destructive', onPress: clearRecords },
+    ]);
   }
 
   return (
     <ScreenContainer>
       <SectionCard>
-        <Text style={styles.title}>🏆 Recordes</Text>
-        <Text style={styles.subtitle}>
-          Os melhores resultados salvos neste dispositivo.
-        </Text>
+        <Text style={styles.title}>Histórico de Partidas</Text>
+        <Text style={styles.subtitle}>{records.length} partida(s) registrada(s)</Text>
       </SectionCard>
 
       {isLoading ? (
-        <Text style={styles.emptyText}>Carregando...</Text>
+        <Text style={styles.empty}>Carregando...</Text>
       ) : records.length === 0 ? (
-        <Text style={styles.emptyText}>Nenhum recorde ainda. Jogue para aparecer aqui!</Text>
+        <Text style={styles.empty}>Nenhuma partida ainda. Vamos jogar!</Text>
       ) : (
-        records.map((record, index) => (
-          <View key={record.id} style={styles.card}>
-            <Text style={styles.medal}>{MEDALS[index] ?? `#${index + 1}`}</Text>
-
-            <View style={styles.info}>
-              <Text style={styles.themeName}>{record.themeName}</Text>
-              <Text style={styles.meta}>
-                {DIFFICULTIES[record.difficulty].label} · {formatSeconds(record.timeInSeconds)} · {record.moves} jogadas
+        records.map((r) => (
+          <View key={r.id} style={styles.card}>
+            <View style={styles.cardLeft}>
+              <Text style={styles.cardTheme}>{r.themeName}</Text>
+              <Text style={styles.cardMeta}>
+                {formatSeconds(r.timeInSeconds)} · {r.moves} jogadas
               </Text>
-              <Text style={styles.date}>{formatDateTime(record.finishedAt)}</Text>
+              <Text style={styles.cardDate}>{formatDateTime(r.finishedAt)}</Text>
             </View>
-
-            <Text style={styles.score}>{formatScore(record.score)}</Text>
+            <Text style={styles.cardIcon}>🎯</Text>
           </View>
         ))
       )}
 
       {records.length > 0 && (
-        <AppButton title="🗑️ Limpar recordes" onPress={handleClear} variant="danger" />
+        <AppButton title="🗑️ Limpar histórico" onPress={handleClear} variant="danger" />
       )}
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title:    { color: colors.text,    fontSize: 28, fontWeight: '900' },
-  subtitle: { color: colors.textMuted, fontSize: 15 },
-  emptyText:{ color: colors.textMuted, fontSize: 16, textAlign: 'center', paddingVertical: 20 },
+  title:    { color: colors.primary, fontSize: 26, fontWeight: '900' },
+  subtitle: { color: colors.textMuted, fontSize: 14 },
+  empty:    { color: colors.textMuted, fontSize: 16, textAlign: 'center', paddingVertical: 32 },
   card: {
     flexDirection:   'row',
     alignItems:      'center',
-    gap:             12,
     backgroundColor: colors.surface,
     borderRadius:    18,
     padding:         16,
     borderWidth:     1,
     borderColor:     colors.border,
   },
-  medal:    { fontSize: 28 },
-  info:     { flex: 1, gap: 3 },
-  themeName:{ color: colors.text,         fontSize: 16, fontWeight: '700' },
-  meta:     { color: colors.textSecondary, fontSize: 13 },
-  date:     { color: colors.textMuted,    fontSize: 12 },
-  score:    { color: colors.primary,      fontSize: 22, fontWeight: '900' },
+  cardLeft:  { flex: 1, gap: 3 },
+  cardTheme: { color: colors.text,          fontSize: 16, fontWeight: '700' },
+  cardMeta:  { color: colors.textSecondary, fontSize: 13 },
+  cardDate:  { color: colors.textMuted,     fontSize: 12 },
+  cardIcon:  { fontSize: 28 },
 });

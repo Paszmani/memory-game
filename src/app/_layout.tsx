@@ -1,45 +1,56 @@
-import { Stack }    from 'expo-router';
-import { Platform } from 'react-native';
+import { useEffect }    from 'react';
+import { Platform }     from 'react-native';
+import { Stack }        from 'expo-router';
 
-import { ToastProvider } from '@/components/ui/Toast';
-import { colors }        from '@/constants/colors';
+import { SettingsProvider } from '@/contexts/SettingsContext';
+import { ToastProvider }    from '@/components/ui/Toast';
+import { colors }           from '@/constants/colors';
 
-if (Platform.OS === 'web') {
-  const injectMeta = (name: string, content: string) => {
-    let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
-    if (!el) { el = document.createElement('meta'); el.name = name; document.head.appendChild(el); }
-    el.content = content;
-  };
+function usePWAMetaTags() {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
 
-  injectMeta('viewport',                         'width=device-width, initial-scale=1, viewport-fit=cover');
-  injectMeta('theme-color',                      colors.background);
-  injectMeta('mobile-web-app-capable',           'yes');
-  injectMeta('apple-mobile-web-app-capable',     'yes');
-  injectMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
+    const set = (name: string, content: string) => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
+      if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el); }
+      el.setAttribute('content', content);
+    };
 
-  let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-  if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
-  link.href = '/manifest.json';
+    set('viewport',                          'width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover');
+    set('theme-color',                        colors.background);
+    set('mobile-web-app-capable',            'yes');
+    set('apple-mobile-web-app-capable',      'yes');
+    set('apple-mobile-web-app-status-bar-style', 'black-translucent');
+    set('apple-mobile-web-app-title',        'Jogo da Memória');
+
+    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
+    link.href = '/manifest.json';
+  }, []);
 }
 
 export default function RootLayout() {
+  usePWAMetaTags();
+
   return (
-    <ToastProvider>
-      <Stack
-        screenOptions={{
-          headerStyle:      { backgroundColor: colors.surface },
-          headerTintColor:  colors.text,
-          headerTitleStyle: { fontWeight: '800', fontSize: 18 },
-          contentStyle:     { backgroundColor: colors.background },
-          animation:        'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="index"           options={{ headerShown: false }} />
-        <Stack.Screen name="game/index"      options={{ headerShown: false }} />
-        <Stack.Screen name="customize/index" options={{ title: 'Personalizar' }} />
-        <Stack.Screen name="records/index"   options={{ title: 'Recordes' }} />
-        <Stack.Screen name="settings/index"  options={{ title: 'Configurações' }} />
-      </Stack>
-    </ToastProvider>
+    <SettingsProvider>
+      <ToastProvider>
+        <Stack
+          screenOptions={{
+            headerStyle:      { backgroundColor: colors.surface },
+            headerTintColor:  colors.text,
+            headerTitleStyle: { fontWeight: '800', fontSize: 18 },
+            contentStyle:     { backgroundColor: colors.background },
+            animation:        'slide_from_right',
+          }}
+        >
+          <Stack.Screen name="index"           options={{ headerShown: false }} />
+          <Stack.Screen name="game/index"      options={{ headerShown: false }} />
+          <Stack.Screen name="customize/index" options={{ title: 'Personalizar' }} />
+          <Stack.Screen name="records/index"   options={{ title: 'Histórico' }} />
+          <Stack.Screen name="settings/index"  options={{ title: 'Configurações' }} />
+        </Stack>
+      </ToastProvider>
+    </SettingsProvider>
   );
 }

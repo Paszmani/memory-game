@@ -21,8 +21,19 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
 
   return (
     <SectionCard title="🎮 Gameplay">
-      {/* Colunas do tabuleiro */}
-      <Text style={styles.subLabel}>Colunas do Tabuleiro</Text>
+      {/* Pares */}
+      <SliderInput
+        label="Número de pares"
+        value={local.pairCount}
+        min={2}
+        max={20}
+        step={2}
+        unit=" pares"
+        onChange={(v) => update({ pairCount: v })}
+      />
+
+      {/* Colunas */}
+      <Text style={styles.subLabel}>Colunas do tabuleiro</Text>
       <View style={styles.row}>
         {COLUMN_OPTIONS.map((col) => (
           <Pressable
@@ -37,35 +48,6 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
         ))}
       </View>
 
-      {/* Número de pares por dificuldade */}
-      <SliderInput
-        label="Pares — Fácil"
-        value={local.pairCountEasy}
-        min={2}
-        max={8}
-        step={1}
-        unit=" pares"
-        onChange={(v) => update({ pairCountEasy: v })}
-      />
-      <SliderInput
-        label="Pares — Médio"
-        value={local.pairCountMedium}
-        min={4}
-        max={16}
-        step={2}
-        unit=" pares"
-        onChange={(v) => update({ pairCountMedium: v })}
-      />
-      <SliderInput
-        label="Pares — Difícil"
-        value={local.pairCountHard}
-        min={8}
-        max={24}
-        step={2}
-        unit=" pares"
-        onChange={(v) => update({ pairCountHard: v })}
-      />
-
       {/* Delay de virada */}
       <SliderInput
         label="Tempo para virar cartas erradas"
@@ -73,7 +55,6 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
         min={300}
         max={2000}
         step={100}
-        unit="ms"
         onChange={(v) => update({ flipDelayMs: v })}
         formatValue={(v) => `${(v / 1000).toFixed(1)}s`}
       />
@@ -85,18 +66,15 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
         min={0}
         max={30}
         step={5}
-        unit="s"
         onChange={(v) => update({ hintAfterSeconds: v })}
         formatValue={(v) => v === 0 ? 'Desligado' : `${v}s`}
       />
 
-      {/* Toggles */}
-      <ToggleSwitch label="Mostrar cronômetro" value={local.showTimer} onToggle={(v) => update({ showTimer: v })} />
-      <ToggleSwitch label="Mostrar jogadas"    value={local.showMoves} onToggle={(v) => update({ showMoves: v })} />
-      <ToggleSwitch label="Mostrar pontuação"  value={local.showScore} onToggle={(v) => update({ showScore: v })} />
-      <ToggleSwitch label="Som habilitado"     value={local.soundEnabled} onToggle={(v) => update({ soundEnabled: v })} />
+      <ToggleSwitch label="Mostrar cronômetro"     value={local.showTimer}   onToggle={(v) => update({ showTimer: v })} />
+      <ToggleSwitch label="Mostrar jogadas"         value={local.showMoves}   onToggle={(v) => update({ showMoves: v })} />
+      <ToggleSwitch label="Som habilitado"          value={local.soundEnabled} onToggle={(v) => update({ soundEnabled: v })} />
       <ToggleSwitch
-        label="Mostrar rótulos nas cartas"
+        label="Rótulos nas cartas"
         hint="Exibe o nome do item abaixo do emoji"
         value={local.showLabels}
         onToggle={(v) => update({ showLabels: v })}
@@ -113,14 +91,10 @@ const styles = StyleSheet.create({
   subLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
   row:      { flexDirection: 'row', gap: 8 },
   colBtn: {
-    flex:            1,
-    height:          44,
-    borderRadius:    12,
-    borderWidth:     1.5,
-    borderColor:     colors.border,
+    flex: 1, height: 44, borderRadius: 12,
+    borderWidth: 1.5, borderColor: colors.border,
     backgroundColor: colors.background,
-    alignItems:      'center',
-    justifyContent:  'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   colBtnActive:  { borderColor: colors.primary, backgroundColor: colors.primaryGlow },
   colText:       { color: colors.textMuted, fontSize: 18, fontWeight: '700' },
