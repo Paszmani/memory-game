@@ -30,12 +30,16 @@ export default function HomeScreen() {
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
 
-  function handlePlay() { 
-    resetTimer();
-    const theme = selectedThemeId ?? themes[0]?.id;
-    const query = theme ? `?themeId=${theme}` : '';
-    router.push(`/game${query}`);
-  }
+  function handlePlay() {
+  resetTimer();
+
+  const theme = selectedThemeId ?? themes[0]?.id;
+
+  router.push({
+    pathname: '/game',
+    params: theme ? { themeId: theme } : undefined,
+  });
+}
 
   const { branding, background } = settings;
 

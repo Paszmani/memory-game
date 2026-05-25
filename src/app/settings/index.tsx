@@ -104,7 +104,7 @@ export default function SettingsScreen() {
 
       {/* Dados */}
       <SectionCard title="💾 Dados Locais">
-        <Text style={styles.infoText}>Temas e recordes ficam salvos apenas neste dispositivo.</Text>
+        <Text style={styles.infoText}>Temas ficam salvos apenas neste dispositivo.</Text>
         <AppButton title="🗑️ Apagar recordes e temas" onPress={handleClearData} variant="danger" fullWidth />
       </SectionCard>
 
