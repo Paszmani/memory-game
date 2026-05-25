@@ -75,7 +75,9 @@ export default function GameScreen() {
   });
 
   useEffect(() => {
-    if (!game.isFinished || !selectedTheme || hasSavedRef.current) return;
+    if (!game.isFinished || !selectedTheme || hasSavedRef.current) {
+      return;
+    }
 
     hasSavedRef.current = true;
 
@@ -142,6 +144,7 @@ export default function GameScreen() {
       <GradientBackground settings={settings.background}>
         <View style={styles.center}>
           <ActivityIndicator color={settings.ui.primaryColor} size="large" />
+
           <Text style={[styles.loadingText, { color: settings.ui.textColor }]}>
             Carregando partida...
           </Text>
@@ -156,7 +159,8 @@ export default function GameScreen() {
         {isActive && (
           <AttractScreen
             message={settings.totem.attractMessage}
-            onStart={deactivate}
+            gameTitle={settings.branding.gameTitle}
+            onDismiss={deactivate}
           />
         )}
 
@@ -240,10 +244,11 @@ export default function GameScreen() {
         <GameFinishedModal
           visible={game.isFinished}
           moves={game.moves}
-          timeInSeconds={game.elapsedSeconds}
+          elapsedSeconds={game.elapsedSeconds}
           score={score}
+          pairCount={pairCount}
           onRestart={handleRestart}
-          onHome={handleGoHome}
+          onGoHome={handleGoHome}
         />
       </Pressable>
     </GradientBackground>

@@ -1,156 +1,134 @@
 import React from 'react';
 import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
-import { confirmAction, showDialogMessage } from '@/utils/dialog';
 
-import { AppButton }       from '@/components/ui/AppButton';
+import { AppButton }      from '@/components/ui/AppButton';
+import { SaveBar }        from '@/components/ui/SaveBar';
+import { SectionCard }    from '@/components/ui/SectionCard';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { SectionCard }     from '@/components/ui/SectionCard';
-import { colors }          from '@/constants/colors';
-import { useAppSettings }  from '@/hooks/useAppSettings';
+import { SliderInput }    from '@/components/ui/SliderInput';
+import { ToggleSwitch }   from '@/components/ui/ToggleSwitch';
+import { useToast }       from '@/components/ui/Toast';
+import { colors }         from '@/constants/colors';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { useSaveState }   from '@/hooks/useSaveState';
 import { clearGameResults } from '@/services/scoreService';
 import { clearCustomThemes } from '@/services/themeService';
 
 export default function SettingsScreen() {
-  const { settings, updateSettings, resetSettings } = useAppSettings();
-  const { gameBehavior, totem } = settings;
+  const { settings, saveSettings, resetSettings } = useAppSettings();
+  const { show: showToast } = useToast();
 
-  function handleResetAll() {
-    confirmAction({
-      title: 'Redefinir tudo',
-      message: 'Isso apagará todas as configurações e voltará ao padrão.',
-      confirmText: 'Redefinir',
-      destructive: true,
-      onConfirm: resetSettings,
+  // Seção totem tem estado próprio
+  const { localValue: totem, status: totemStatus, update: updateTotem, save: saveTotem, reset: resetTotem } =
+    useSaveState(settings.totem, async (v) => {
+      await saveSettings({ ...settings, totem: v });
+      showToast('Configurações salvas!', 'success');
     });
+
+  async function handleResetAll() {
+    Alert.alert('Redefinir tudo', 'Isso apaga todas as configurações.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Redefinir', style: 'destructive',
+        onPress: async () => {
+          await resetSettings();
+          showToast('Configurações redefinidas.', 'info');
+        },
+      },
+    ]);
   }
 
-  function handleClearData() {
-    confirmAction({
-      title: 'Apagar dados do jogo',
-      message: 'Isso apagará recordes e temas personalizados.',
-      confirmText: 'Apagar',
-      destructive: true,
-      onConfirm: async () => {
-        await Promise.all([clearGameResults(), clearCustomThemes()]);
-        showDialogMessage('Pronto', 'Dados apagados com sucesso.');
+  async function handleClearData() {
+    Alert.alert('Apagar dados', 'Recordes e temas personalizados serão apagados.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Apagar', style: 'destructive',
+        onPress: async () => {
+          await Promise.all([clearGameResults(), clearCustomThemes()]);
+          showToast('Dados apagados.', 'info');
+        },
       },
-    });
+    ]);
   }
 
   return (
     <ScreenContainer>
-      {/* Comportamento do jogo */}
-      <SectionCard title="Comportamento do Jogo">
-        <SettingToggle
-          label="Som habilitado"
-          value={gameBehavior.soundEnabled}
-          onToggle={(v) => updateSettings({ gameBehavior: { soundEnabled: v } })}
-        />
-        <SettingToggle
-          label="Animações"
-          value={gameBehavior.animationsEnabled}
-          onToggle={(v) => updateSettings({ gameBehavior: { animationsEnabled: v } })}
-        />
-        <SettingToggle
-          label="Mostrar cronômetro"
-          value={gameBehavior.showTimer}
-          onToggle={(v) => updateSettings({ gameBehavior: { showTimer: v } })}
-        />
-        <SettingToggle
-          label="Mostrar jogadas"
-          value={gameBehavior.showMoves}
-          onToggle={(v) => updateSettings({ gameBehavior: { showMoves: v } })}
-        />
-        <SettingToggle
-          label="Mostrar pontuação"
-          value={gameBehavior.showScore}
-          onToggle={(v) => updateSettings({ gameBehavior: { showScore: v } })}
-        />
-      </SectionCard>
-
-      {/* Configurações de totem */}
-      <SectionCard title="Modo Totem">
-        <SettingToggle
+      {/* Totem */}
+      <SectionCard title="📺 Modo Totem">
+        <ToggleSwitch
           label="Tela de atração"
+          hint="Exibe animação de idle"
           value={totem.attractScreenEnabled}
-          onToggle={(v) => updateSettings({ totem: { attractScreenEnabled: v } })}
+          onToggle={(v) => updateTotem({ attractScreenEnabled: v })}
         />
-        <SettingToggle
+        <ToggleSwitch
           label="Modo quiosque"
+          hint="Bloqueia navegação do sistema"
           value={totem.kioskMode}
-          onToggle={(v) => updateSettings({ totem: { kioskMode: v } })}
+          onToggle={(v) => updateTotem({ kioskMode: v })}
+        />
+
+        <SliderInput
+          label="Tempo de inatividade (attract)"
+          value={totem.attractTimeoutSeconds}
+          min={10}
+          max={120}
+          step={5}
+          unit="s"
+          onChange={(v) => updateTotem({ attractTimeoutSeconds: v })}
+        />
+
+        <SliderInput
+          label="Auto-resetar após fim de jogo"
+          value={totem.autoResetAfterFinishSeconds}
+          min={0}
+          max={60}
+          step={5}
+          unit="s"
+          onChange={(v) => updateTotem({ autoResetAfterFinishSeconds: v })}
+          formatValue={(v) => v === 0 ? 'Desligado' : `${v}s`}
         />
 
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Mensagem de atração</Text>
           <TextInput
             value={totem.attractMessage}
-            onChangeText={(t) => updateSettings({ totem: { attractMessage: t } })}
+            onChangeText={(t) => updateTotem({ attractMessage: t })}
             style={styles.input}
             placeholderTextColor={colors.textMuted}
           />
         </View>
+
+        <SaveBar status={totemStatus} onSave={saveTotem} onReset={resetTotem} />
       </SectionCard>
 
-      {/* Dados locais */}
-      <SectionCard title="Dados Locais">
-        <Text style={styles.infoText}>
-          Temas e recordes são salvos apenas neste dispositivo.
-        </Text>
-        <AppButton
-          title="🗑️ Apagar todos os dados do jogo"
-          onPress={handleClearData}
-          variant="danger"
-          fullWidth
-        />
+      {/* Dados */}
+      <SectionCard title="💾 Dados Locais">
+        <Text style={styles.infoText}>Temas e recordes ficam salvos apenas neste dispositivo.</Text>
+        <AppButton title="🗑️ Apagar recordes e temas" onPress={handleClearData} variant="danger" fullWidth />
       </SectionCard>
 
-      {/* Reset */}
-      <AppButton
-        title="↩️ Redefinir configurações"
-        onPress={handleResetAll}
-        variant="ghost"
-        fullWidth
-      />
+      {/* Reset total */}
+      <SectionCard title="⚙️ Avançado">
+        <Text style={styles.infoText}>Restaura todas as configurações para os valores padrão.</Text>
+        <AppButton title="↩️ Redefinir configurações" onPress={handleResetAll} variant="ghost" fullWidth />
+      </SectionCard>
     </ScreenContainer>
   );
 }
 
-function SettingToggle({
-  label, value, onToggle,
-}: { label: string; value: boolean; onToggle: (v: boolean) => void }) {
-  return (
-    <View style={styles.toggleRow}>
-      <Text style={styles.toggleLabel}>{label}</Text>
-      <AppButton
-        title={value ? 'Ligado' : 'Desligado'}
-        onPress={() => onToggle(!value)}
-        variant={value ? 'success' : 'secondary'}
-        size="sm"
-      />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  toggleRow: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-    alignItems:     'center',
-    paddingVertical: 6,
-  },
-  toggleLabel: { color: colors.text, fontSize: 15, flex: 1 },
-  field:       { gap: 8 },
-  fieldLabel:  { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  field:      { gap: 8 },
+  fieldLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
   input: {
-    minHeight:        48,
-    backgroundColor:  colors.background,
-    borderRadius:     12,
-    paddingHorizontal: 14,
-    color:            colors.text,
-    borderWidth:      1,
-    borderColor:      colors.border,
-    fontSize:         15,
+    minHeight:         52,
+    backgroundColor:   colors.background,
+    borderRadius:      14,
+    paddingHorizontal: 16,
+    color:             colors.text,
+    borderWidth:       1,
+    borderColor:       colors.border,
+    fontSize:          16,
   },
   infoText: { color: colors.textMuted, fontSize: 14 },
 });
