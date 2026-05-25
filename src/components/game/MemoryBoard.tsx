@@ -1,79 +1,49 @@
 import React, { memo } from 'react';
+import { FlatList, StyleSheet } from 'react-native';
 
-import { FlatList, StyleSheet, View } from 'react-native';
-
-import { MemoryCard } from '@/components/game/MemoryCard';
-import type { MemoryCard as MemoryCardType } from '@/types/game';
-import type {
-  AnimationSettings,
-  CardStyleSettings,
-  GridColumns,
-} from '@/types/settings';
+import { MemoryCard }       from '@/components/game/MemoryCard';
+import { useAppSettings }   from '@/hooks/useAppSettings';
+import { CardStyleSettings } from '@/types/settings';
+import { MemoryCard as CardType } from '@/types/game';
 
 interface Props {
-  cards: MemoryCardType[];
-  columns: GridColumns;
+  cards:     CardType[];
+  columns:   number;
   cardStyle: CardStyleSettings;
-  animationSettings?: AnimationSettings;
-  showLabels?: boolean;
-  onFlip: (cardId: string) => void;
+  onFlip:    (cardId: string) => void;
 }
 
-export const MemoryBoard = memo(
-  ({
-    cards,
-    columns,
-    cardStyle,
-    animationSettings,
-    showLabels = false,
-    onFlip,
-  }: Props) => {
-    const safeColumns = Math.max(2, Math.min(6, columns));
+export const MemoryBoard = memo(({ cards, columns, cardStyle, onFlip }: Props) => {
+  const { settings } = useAppSettings();
+  const { animation } = settings;
 
-    return (
-      <View style={styles.container}>
-        <FlatList
-          key={`board-${safeColumns}`}
-          data={cards}
-          numColumns={safeColumns}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.content}
-          columnWrapperStyle={safeColumns > 1 ? styles.row : undefined}
-          scrollEnabled
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={[styles.item, { width: `${100 / safeColumns}%` }]}>
-              <MemoryCard
-                card={item}
-                cardStyle={cardStyle}
-                animationSettings={animationSettings}
-                showLabel={showLabels}
-                onPress={() => onFlip(item.id)}
-              />
-            </View>
-          )}
-          removeClippedSubviews={false}
+  return (
+    <FlatList
+      key={`board-${columns}`}
+      data={cards}
+      numColumns={columns}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.content}
+      scrollEnabled={false}
+      removeClippedSubviews={false}
+      renderItem={({ item }) => (
+        <MemoryCard
+          card={item}
+          cardStyle={cardStyle}
+          animSettings={{
+            enabled:     animation.enabled,
+            flipStyle:   animation.flipStyle,
+            flipSpeedMs: animation.flipSpeedMs,
+          }}
+          onPress={() => onFlip(item.id)}
         />
-      </View>
-    );
-  },
-);
+      )}
+    />
+  );
+});
 
 MemoryBoard.displayName = 'MemoryBoard';
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    minHeight: 0,
-  },
-  content: {
-    paddingBottom: 24,
-  },
-  row: {
-    justifyContent: 'center',
-  },
-  item: {
-    flexGrow: 0,
-    flexShrink: 0,
-  },
+  content: { paddingBottom: 4 },
 });

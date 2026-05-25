@@ -1,133 +1,59 @@
-import React, { memo, useEffect, useMemo, useRef } from 'react';
-
-import { Animated, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import React, { memo, useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 
 import { CARD_BORDER_RADIUS } from '@/constants/defaultSettings';
-import { colors } from '@/constants/colors';
-import type { MemoryCard as MemoryCardType } from '@/types/game';
-import type { AnimationSettings, CardStyleSettings } from '@/types/settings';
+import { colors }             from '@/constants/colors';
+import { AnimationSettings, CardStyleSettings } from '@/types/settings';
+import { MemoryCard as CardType } from '@/types/game';
 
 interface Props {
-  card: MemoryCardType;
-  onPress: () => void;
-  cardStyle: CardStyleSettings;
-  animationSettings?: AnimationSettings;
-  animated?: boolean;
-  showLabel?: boolean;
+  card:        CardType;
+  onPress:     () => void;
+  cardStyle:   CardStyleSettings;
+  animSettings: Pick<AnimationSettings, 'enabled' | 'flipStyle' | 'flipSpeedMs'>;
 }
 
-const FRONT_ROTATION = '0deg';
-const BACK_ROTATION = '180deg';
-const HALF_ROTATION = '90deg';
+export const MemoryCard = memo(({ card, onPress, cardStyle, animSettings }: Props) => {
+  const { enabled, flipStyle, flipSpeedMs } = animSettings;
+  const isVisible    = card.isFlipped || card.isMatched;
+  const borderRadius = CARD_BORDER_RADIUS[cardStyle.shape] ?? 16;
+  const animVal      = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
 
-function getBackPattern(cardStyle: CardStyleSettings) {
-  switch (cardStyle.backPattern) {
-    case 'dots':
-      return '•••';
-    case 'grid':
-      return '▦';
-    case 'emoji':
-      return cardStyle.backPatternEmoji || '?';
-    case 'solid':
-    default:
-      return '';
-  }
-}
+  useEffect(() => {
+    if (!enabled) {
+      animVal.setValue(isVisible ? 1 : 0);
+      return;
+    }
+    Animated.timing(animVal, {
+      toValue:         isVisible ? 1 : 0,
+      duration:        flipSpeedMs,
+      useNativeDriver: flipStyle !== 'fade' && flipStyle !== 'zoom',
+    }).start();
+  }, [isVisible, animVal, enabled, flipSpeedMs, flipStyle]);
 
-function getBorderWidth(cardStyle: CardStyleSettings) {
-  if (cardStyle.borderStyleType === 'none') return 0;
-  if (cardStyle.borderStyleType === 'subtle') return 1;
-  if (cardStyle.borderStyleType === 'bold') return Math.max(3, cardStyle.borderWidth);
-  if (cardStyle.borderStyleType === 'glow') return Math.max(2, cardStyle.borderWidth);
+  const borderColor = card.isMatched ? cardStyle.matchedColor
+    : isVisible ? cardStyle.borderColor
+    : colors.border;
 
-  return cardStyle.borderWidth;
-}
+  const faceStyle = {
+    backgroundColor: card.isMatched ? `${cardStyle.matchedColor}22` : cardStyle.frontColor,
+    borderColor, borderRadius,
+    borderWidth: cardStyle.borderWidth,
+  };
 
-export const MemoryCard = memo(
-  ({
-    card,
-    onPress,
-    cardStyle,
-    animationSettings,
-    animated = true,
-    showLabel = false,
-  }: Props) => {
-    const isVisible = card.isFlipped || card.isMatched;
-    const flipAnim = useRef(new Animated.Value(isVisible ? 1 : 0)).current;
+  const backFaceStyle = {
+    backgroundColor: cardStyle.backColor,
+    borderColor, borderRadius,
+    borderWidth: cardStyle.borderWidth,
+  };
 
-    const shouldAnimate = animated && (animationSettings?.enabled ?? true);
-    const flipDurationMs = animationSettings?.flipSpeedMs ?? 300;
-    const flipStyle = animationSettings?.flipStyle ?? 'horizontal';
-
-    const borderRadius = CARD_BORDER_RADIUS[cardStyle.shape] ?? 16;
-    const borderWidth = getBorderWidth(cardStyle);
-    const backPattern = useMemo(() => getBackPattern(cardStyle), [cardStyle]);
-
-    useEffect(() => {
-      if (!shouldAnimate) {
-        flipAnim.setValue(isVisible ? 1 : 0);
-        return;
-      }
-
-      Animated.timing(flipAnim, {
-        toValue: isVisible ? 1 : 0,
-        duration: flipDurationMs,
-        useNativeDriver: true,
-      }).start();
-    }, [isVisible, flipAnim, shouldAnimate, flipDurationMs]);
-
-    const frontRotate = flipAnim.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [BACK_ROTATION, HALF_ROTATION, FRONT_ROTATION],
-    });
-
-    const backRotate = flipAnim.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [FRONT_ROTATION, HALF_ROTATION, BACK_ROTATION],
-    });
-
-    const opacityFront = flipAnim.interpolate({
-      inputRange: [0, 0.45, 1],
-      outputRange: [0, 0, 1],
-    });
-
-    const opacityBack = flipAnim.interpolate({
-      inputRange: [0, 0.55, 1],
-      outputRange: [1, 0, 0],
-    });
-
-    const scale = flipAnim.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [1, flipStyle === 'zoom' ? 1.12 : 1.04, 1],
-    });
-
-    const borderColor = card.isMatched
-      ? cardStyle.matchedColor
-      : isVisible
-        ? cardStyle.borderColor
-        : colors.border;
-
-    const shadowStyle: ViewStyle | undefined =
-      cardStyle.shadowEnabled || (card.isMatched && cardStyle.glowOnMatch)
-        ? {
-            shadowColor: card.isMatched ? cardStyle.matchedColor : '#000000',
-            shadowOpacity: card.isMatched && cardStyle.glowOnMatch ? 0.45 : 0.22,
-            shadowRadius: card.isMatched && cardStyle.glowOnMatch ? 16 : 8,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: card.isMatched && cardStyle.glowOnMatch ? 8 : 4,
-          }
-        : undefined;
-
-    const frontTransform =
-      flipStyle === 'vertical'
-        ? [{ perspective: 1000 }, { rotateX: frontRotate }]
-        : [{ perspective: 1000 }, { rotateY: frontRotate }];
-
-    const backTransform =
-      flipStyle === 'vertical'
-        ? [{ perspective: 1000 }, { rotateX: backRotate }]
-        : [{ perspective: 1000 }, { rotateY: backRotate }];
+  // ── Fade / Zoom: abordagem de face única ──────────────────────────────────
+  if (flipStyle === 'fade' || flipStyle === 'zoom') {
+    const opacity = animVal;
+    const scale   = flipStyle === 'zoom'
+      ? animVal.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] })
+      : 1;
 
     return (
       <Pressable
@@ -137,134 +63,100 @@ export const MemoryCard = memo(
       >
         <Animated.View
           style={[
-            styles.cardContainer,
-            {
-              transform: [{ scale }],
-            },
+            styles.face,
+            isVisible ? faceStyle : backFaceStyle,
+            { opacity, transform: [{ scale: typeof scale === 'number' ? scale : scale }] },
           ]}
         >
-          <Animated.View
-            style={[
-              styles.face,
-              shadowStyle,
-              {
-                backgroundColor: cardStyle.backColor,
-                borderRadius,
-                borderWidth,
-                borderColor:
-                  cardStyle.borderStyleType === 'glow'
-                    ? cardStyle.borderColor
-                    : colors.border,
-                opacity: flipStyle === 'fade' ? opacityBack : 1,
-                transform: backTransform,
-              },
-            ]}
-          >
-            {!!backPattern && (
-              <Text
-                style={[
-                  styles.questionMark,
-                  {
-                    color: cardStyle.backPatternColor,
-                    fontSize: 28 * cardStyle.emojiSizeScale,
-                  },
-                ]}
-              >
-                {backPattern}
-              </Text>
-            )}
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.face,
-              shadowStyle,
-              {
-                backgroundColor: card.isMatched
-                  ? cardStyle.matchedColor
-                  : cardStyle.frontColor,
-                borderRadius,
-                borderWidth,
-                borderColor,
-                opacity: flipStyle === 'fade' ? opacityFront : 1,
-                transform: frontTransform,
-              },
-            ]}
-          >
-            {card.imageUri ? (
-              <Image source={{ uri: card.imageUri }} style={styles.image} />
-            ) : (
-              <Text
-                style={[
-                  styles.emoji,
-                  {
-                    color: cardStyle.textColor,
-                    fontSize: 36 * cardStyle.emojiSizeScale,
-                  },
-                ]}
-              >
-                {card.emoji}
-              </Text>
-            )}
-
-            {showLabel && (
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.label,
-                  {
-                    color: cardStyle.textColor,
-                  },
-                ]}
-              >
-                {card.label}
-              </Text>
-            )}
-          </Animated.View>
+          {isVisible ? <CardFront card={card} cardStyle={cardStyle} /> : <CardBack />}
         </Animated.View>
       </Pressable>
     );
-  },
-);
+  }
+
+  // ── Horizontal / Vertical: abordagem de duas faces ───────────────────────
+  const isHorizontal = flipStyle !== 'vertical';
+  const axis         = isHorizontal ? 'rotateY' : 'rotateX';
+
+  const frontRotate = animVal.interpolate({
+    inputRange: [0, 1], outputRange: ['180deg', '0deg'],
+  });
+  const backRotate = animVal.interpolate({
+    inputRange: [0, 1], outputRange: ['0deg', '180deg'],
+  });
+  const cardScale = animVal.interpolate({
+    inputRange: [0, 0.5, 1], outputRange: [1, 1.04, 1],
+  });
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={card.isMatched || isVisible}
+      style={styles.wrapper}
+    >
+      <Animated.View style={[styles.container, { transform: [{ scale: cardScale }] }]}>
+        {/* Verso */}
+        <Animated.View
+          style={[
+            styles.face,
+            backFaceStyle,
+            { transform: [{ [axis]: backRotate }], backfaceVisibility: 'hidden' },
+          ]}
+        >
+          <CardBack />
+        </Animated.View>
+
+        {/* Frente */}
+        <Animated.View
+          style={[
+            styles.face,
+            styles.frontAbsolute,
+            faceStyle,
+            { transform: [{ [axis]: frontRotate }], backfaceVisibility: 'hidden' },
+          ]}
+        >
+          <CardFront card={card} cardStyle={cardStyle} />
+        </Animated.View>
+      </Animated.View>
+    </Pressable>
+  );
+});
 
 MemoryCard.displayName = 'MemoryCard';
 
+// ── Subcomponentes ────────────────────────────────────────────────────────────
+
+function CardBack() {
+  return <Text style={styles.questionMark}>?</Text>;
+}
+
+function CardFront({ card, cardStyle }: { card: CardType; cardStyle: CardStyleSettings }) {
+  const emojiSize = Math.round(34 * cardStyle.emojiSizeScale);
+
+  if (card.imageUri) {
+    return (
+      <Image
+        source={{ uri: card.imageUri }}
+        style={styles.image}
+        contentFit="cover"
+        transition={100}
+      />
+    );
+  }
+  return <Text style={[styles.emoji, { fontSize: emojiSize }]}>{card.emoji}</Text>;
+}
+
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 5,
-    minWidth: 64,
-  },
-  cardContainer: {
-    flex: 1,
-    position: 'relative',
-  },
+  wrapper:       { flex: 1, aspectRatio: 1, margin: 4 },
+  container:     { flex: 1, position: 'relative' },
   face: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
+    alignItems:     'center',
     justifyContent: 'center',
-    backfaceVisibility: 'hidden',
-    overflow: 'hidden',
+    overflow:       'hidden',
   },
-  questionMark: {
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  emoji: {
-    textAlign: 'center',
-  },
-  image: {
-    width: '88%',
-    height: '88%',
-  },
-  label: {
-    position: 'absolute',
-    left: 6,
-    right: 6,
-    bottom: 6,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
+  frontAbsolute: {},
+  questionMark:  { fontSize: 26, fontWeight: '900', color: colors.textMuted },
+  emoji:         { textAlign: 'center' },
+  image:         { width: '90%', height: '90%' },
 });

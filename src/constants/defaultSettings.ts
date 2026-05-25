@@ -80,3 +80,7 @@ export const CARD_BORDER_RADIUS: Record<string, number> = {
   rounded: 20,
   circle:  999,
 };
+
+export const FONT_SIZE_SCALE: Record<string, number> = {
+  small: 0.82, medium: 1.0, large: 1.2, xlarge: 1.45,
+};
