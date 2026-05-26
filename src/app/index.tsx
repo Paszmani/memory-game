@@ -25,8 +25,8 @@ export default function HomeScreen() {
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
 
-  const isWide    = width >= 600;
-  const innerMax  = Math.min(width, 480);
+  const isWide   = width >= 600;
+  const innerMax = Math.min(width, 520);
 
   function handlePlay() {
     resetTimer();
@@ -50,39 +50,36 @@ export default function HomeScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            isWide && styles.scrollWide,
-            { minHeight: height },
+            { minHeight: height, paddingHorizontal: isWide ? 48 : 24 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bounces={false}
+          overScrollMode="never"
         >
           <View style={[styles.inner, { width: isWide ? innerMax : '100%' }]}>
 
-            {/* ── Hero ─────────────────────────────────────────── */}
+            {/* Hero */}
             <View style={styles.hero}>
               {branding.logoUri
                 ? <Image source={{ uri: branding.logoUri }} style={styles.logo} />
                 : <Text style={styles.logoEmoji}>{branding.accentEmoji}</Text>
               }
-              <Text style={[styles.title, isWide && { fontSize: 52 }]}>
+              <Text style={[styles.title, isWide && styles.titleWide]}>
                 {branding.gameTitle}
               </Text>
               <Text style={styles.subtitle}>{branding.gameSubtitle}</Text>
             </View>
 
-            {/* ── Seletor de tema ──────────────────────────────── */}
+            {/* Seletor de tema */}
             {themes.length > 1 && (
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>TEMA</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.themeScroll}
-                >
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.themeScroll}>
                   {themes.map((t) => (
                     <ThemeChip
-                      key={t.id}
-                      theme={t}
+                      key={t.id} theme={t}
                       isSelected={(selectedThemeId ?? themes[0]?.id) === t.id}
                       onSelect={() => setSelectedThemeId(t.id)}
                     />
@@ -91,7 +88,7 @@ export default function HomeScreen() {
               </View>
             )}
 
-            {/* ── Botão principal ──────────────────────────────── */}
+            {/* Botão principal — opaco e bem visível */}
             <AppButton
               title="▶  JOGAR"
               onPress={handlePlay}
@@ -99,22 +96,29 @@ export default function HomeScreen() {
               fullWidth
             />
 
-            {/* ── Navegação secundária ─────────────────────────── */}
+            {/* Navegação — sem emojis, texto limpo */}
             <View style={styles.navRow}>
-              <AppButton
-                title="🎨 Personalizar"
+              <Pressable
                 onPress={() => router.push('/customize')}
-                variant="secondary"   // ← sólido, sem transparência
-                size="md"
                 style={styles.navBtn}
-              />
-              <AppButton
-                title="⚙️ Config"
+              >
+                <Text style={styles.navBtnIcon}>✎</Text>
+                <Text style={styles.navBtnLabel}>Personalizar</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/records')}
+                style={styles.navBtn}
+              >
+                <Text style={styles.navBtnIcon}>≡</Text>
+                <Text style={styles.navBtnLabel}>Histórico</Text>
+              </Pressable>
+              <Pressable
                 onPress={() => router.push('/settings')}
-                variant="secondary"   // ← sólido, sem transparência
-                size="md"
                 style={styles.navBtn}
-              />
+              >
+                <Text style={styles.navBtnIcon}>⚙</Text>
+                <Text style={styles.navBtnLabel}>Config</Text>
+              </Pressable>
             </View>
 
           </View>
@@ -128,10 +132,7 @@ function ThemeChip({ theme, isSelected, onSelect }: {
   theme: CustomTheme; isSelected: boolean; onSelect: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onSelect}
-      style={[styles.chip, isSelected && styles.chipActive]}
-    >
+    <Pressable onPress={onSelect} style={[styles.chip, isSelected && styles.chipActive]}>
       <Text style={styles.chipEmoji}>{theme.cards[0]?.emoji ?? '🃏'}</Text>
       <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>
         {theme.name}
@@ -144,31 +145,19 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   scroll: {
-    flexGrow:        1,
-    justifyContent:  'center',
-    alignItems:      'center',
-    padding:         24,
-    paddingVertical: 60,
+    flexGrow: 1, justifyContent: 'center',
+    alignItems: 'center', paddingVertical: 60,
   },
-  scrollWide: { paddingHorizontal: 40 },
-
-  inner: {
-    gap:       28,
-    alignSelf: 'center',
-    width:     '100%',
-  },
-
-  hero: { alignItems: 'center', gap: 14 },
-  logo:       { width: 88, height: 88, borderRadius: 22 },
-  logoEmoji:  { fontSize: 76 },
+  inner:     { gap: 28, alignSelf: 'center', width: '100%' },
+  hero:      { alignItems: 'center', gap: 14 },
+  logo:      { width: 90, height: 90, borderRadius: 22 },
+  logoEmoji: { fontSize: 76 },
   title: {
-    color:         colors.primary,
-    fontSize:      42,
-    fontWeight:    '900',
-    textAlign:     'center',
-    letterSpacing: -1,
+    color: colors.primary, fontSize: 44,
+    fontWeight: '900', textAlign: 'center', letterSpacing: -1,
   },
-  subtitle: { color: colors.textSecondary, fontSize: 17, textAlign: 'center' },
+  titleWide: { fontSize: 56 },
+  subtitle:  { color: colors.textSecondary, fontSize: 17, textAlign: 'center' },
 
   section:      { gap: 10 },
   sectionLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
@@ -185,6 +174,12 @@ const styles = StyleSheet.create({
   chipLabel:       { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
   chipLabelActive: { color: colors.primary },
 
-  navRow:  { flexDirection: 'row', gap: 10 },
-  navBtn:  { flex: 1 },
+  navRow: { flexDirection: 'row', gap: 10 },
+  navBtn: {
+    flex:            1, alignItems: 'center', gap: 6,
+    backgroundColor: colors.surface, borderRadius: 16,
+    paddingVertical: 14, borderWidth: 1, borderColor: colors.border,
+  },
+  navBtnIcon:  { color: colors.primary, fontSize: 22 },
+  navBtnLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
 });

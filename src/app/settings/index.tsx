@@ -11,12 +11,14 @@ import { useToast }        from '@/components/ui/Toast';
 import { colors }          from '@/constants/colors';
 import { useAppSettings }  from '@/hooks/useAppSettings';
 import { useSaveState }    from '@/hooks/useSaveState';
+import { useThemes }       from '@/contexts/ThemesContext';
 import { clearGameResults }  from '@/services/scoreService';
 import { clearCustomThemes } from '@/services/themeService';
 
 export default function SettingsScreen() {
   const { settings, saveSettings, resetSettings } = useAppSettings();
-  const { show: toast } = useToast();
+  const { reload: reloadThemes }                  = useThemes();
+  const { show: toast }                           = useToast();
   const msgRef = useRef<TextInput>(null);
 
   const {
@@ -27,86 +29,65 @@ export default function SettingsScreen() {
     toast('Configurações salvas!', 'success');
   });
 
-  // ── Apagar temas ────────────────────────────────────────────────────────
-  function handleClearThemes() {
-    Alert.alert(
-      'Apagar temas',
-      'Todos os temas personalizados serão removidos. O tema padrão será mantido.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Apagar',
-          style: 'destructive',
-          onPress: () => {
-            clearCustomThemes()
-              .then(() => toast('Temas apagados.', 'info'))
-              .catch(() => toast('Erro ao apagar temas.', 'error'));
-          },
-        },
-      ],
-    );
-  }
-
-  // ── Apagar histórico ────────────────────────────────────────────────────
-  function handleClearHistory() {
-    Alert.alert('Apagar histórico', 'Todas as partidas serão removidas.', [
+  function confirm(
+    title: string, msg: string,
+    onConfirm: () => void,
+  ) {
+    Alert.alert(title, msg, [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Apagar',
-        style: 'destructive',
-        onPress: () => {
-          clearGameResults()
-            .then(() => toast('Histórico apagado.', 'info'))
-            .catch(() => toast('Erro ao apagar histórico.', 'error'));
-        },
-      },
+      { text: 'Confirmar', style: 'destructive', onPress: onConfirm },
     ]);
   }
 
-  // ── Redefinir configurações ─────────────────────────────────────────────
+  function handleClearThemes() {
+    confirm('Apagar temas', 'Os temas personalizados serão removidos.', () => {
+      clearCustomThemes()
+        .then(() => reloadThemes())               // ← atualiza contexto global
+        .then(() => toast('Temas apagados.', 'info'))
+        .catch(() => toast('Erro ao apagar.', 'error'));
+    });
+  }
+
+  function handleClearHistory() {
+    confirm('Apagar histórico', 'Todas as partidas serão removidas.', () => {
+      clearGameResults()
+        .then(() => toast('Histórico apagado.', 'info'))
+        .catch(() => toast('Erro ao apagar.', 'error'));
+    });
+  }
+
   function handleReset() {
-    Alert.alert(
+    confirm(
       'Redefinir configurações',
       'Todas as personalizações voltarão ao padrão.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Redefinir',
-          style: 'destructive',
-          onPress: () => {
-            resetSettings()
-              .then(() => toast('Configurações redefinidas.', 'info'))
-              .catch(() => toast('Erro ao redefinir.', 'error'));
-          },
-        },
-      ],
+      () => {
+        resetSettings()
+          .then(() => toast('Configurações redefinidas.', 'info'))
+          .catch(() => toast('Erro ao redefinir.', 'error'));
+      },
     );
   }
 
   return (
     <ScreenContainer>
-      {/* ── Totem ────────────────────────────────────────────────── */}
       <SectionCard title="📺 Modo Totem">
         <ToggleSwitch
-          label="Tela de atração"
-          hint="Exibe animação quando o totem está inativo"
+          label="Tela de atração" hint="Exibe animação quando o totem está inativo"
           value={totem.attractScreenEnabled}
           onToggle={(v) => updateTotem({ attractScreenEnabled: v })}
         />
         <ToggleSwitch
-          label="Modo quiosque"
-          hint="Bloqueia gestos de navegação do sistema"
+          label="Modo quiosque" hint="Bloqueia gestos de navegação do sistema"
           value={totem.kioskMode}
           onToggle={(v) => updateTotem({ kioskMode: v })}
         />
         <SliderInput
-          label="Tempo de inatividade"
-          value={totem.attractTimeoutSeconds}
+          label="Tempo de inatividade" value={totem.attractTimeoutSeconds}
           min={10} max={120} step={5} unit="s"
           onChange={(v) => updateTotem({ attractTimeoutSeconds: v })}
         />
         <SliderInput
-          label="Auto-resetar após fim de jogo"
+          label="Auto-resetar após fim"
           value={totem.autoResetAfterFinishSeconds}
           min={0} max={60} step={5}
           onChange={(v) => updateTotem({ autoResetAfterFinishSeconds: v })}
@@ -120,42 +101,24 @@ export default function SettingsScreen() {
             onChangeText={(t) => updateTotem({ attractMessage: t })}
             style={styles.input}
             placeholderTextColor={colors.textMuted}
-            returnKeyType="done"
           />
         </View>
         <SaveBar status={totemStatus} onSave={saveTotem} onReset={resetTotem} />
       </SectionCard>
 
-      {/* ── Dados ────────────────────────────────────────────────── */}
-      <SectionCard title="💾 Dados Locais">
+      <SectionCard title="Dados Locais">
         <Text style={styles.info}>
-          Temas e histórico ficam armazenados apenas neste dispositivo.
+          Temas e histórico são armazenados apenas neste dispositivo.
         </Text>
-        <AppButton
-          title="🗑️ Apagar temas"
-          onPress={handleClearThemes}
-          variant="danger"
-          fullWidth
-        />
-        <AppButton
-          title="🗑️ Apagar histórico"
-          onPress={handleClearHistory}
-          variant="danger"
-          fullWidth
-        />
+        <AppButton title="Apagar temas"    onPress={handleClearThemes}  variant="danger" fullWidth />
+        <AppButton title="Apagar histórico" onPress={handleClearHistory} variant="danger" fullWidth />
       </SectionCard>
 
-      {/* ── Avançado ─────────────────────────────────────────────── */}
-      <SectionCard title="⚙️ Avançado">
+      <SectionCard title="Avançado">
         <Text style={styles.info}>
           Restaura todas as cores, estilos e textos para os valores originais.
         </Text>
-        <AppButton
-          title="↩️ Redefinir configurações"
-          onPress={handleReset}
-          variant="ghost"
-          fullWidth
-        />
+        <AppButton title="Redefinir configurações" onPress={handleReset} variant="ghost" fullWidth />
       </SectionCard>
     </ScreenContainer>
   );

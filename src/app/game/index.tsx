@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator, Pressable, SafeAreaView,
   ScrollView, StyleSheet, Text, View,
+  useWindowDimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -25,6 +26,8 @@ export default function GameScreen() {
   const params              = useLocalSearchParams();
   const { settings }        = useAppSettings();
   const { themes, isLoading } = useThemeManager();
+  const { width, height }   = useWindowDimensions();
+  const isLandscape         = width > height;
 
   const selectedThemeId = typeof params.themeId === 'string' ? params.themeId : undefined;
   const hasSavedRef     = useRef(false);
@@ -73,9 +76,7 @@ export default function GameScreen() {
     }
   }, [game.isFinished, game.moves, game.elapsedSeconds, selectedTheme, settings.totem]);
 
-  useEffect(() => () => {
-    if (autoResetRef.current) clearTimeout(autoResetRef.current);
-  }, []);
+  useEffect(() => () => { if (autoResetRef.current) clearTimeout(autoResetRef.current); }, []);
 
   const handleRestart = useCallback(() => {
     if (autoResetRef.current) clearTimeout(autoResetRef.current);
@@ -102,57 +103,71 @@ export default function GameScreen() {
     <GradientBackground settings={settings.background} style={styles.container}>
       <StatusBar style="light" />
       <SafeAreaView style={styles.safe}>
-
-        {isActive && (
-          <AttractScreen
-            gameTitle={settings.branding.gameTitle}
-            message={settings.totem.attractMessage}
-            onDismiss={deactivate}
-          />
-        )}
-
         <Pressable style={styles.flex} onPress={resetTimer}>
 
-          {/* ── Cabeçalho fixo ─────────────────────────────── */}
-          <View style={styles.topBar}>
+          {isActive && (
+            <AttractScreen
+              gameTitle={settings.branding.gameTitle}
+              message={settings.totem.attractMessage}
+              onDismiss={deactivate}
+            />
+          )}
+
+          {/* ── Cabeçalho (compacto em landscape) ────────── */}
+          <View style={[styles.topBar, isLandscape && styles.topBarLandscape]}>
             <Pressable onPress={handleGoHome} style={styles.backBtn}>
               <Text style={styles.backBtnText}>‹ Início</Text>
             </Pressable>
-            <Text style={styles.themeName} numberOfLines={1}>
-              {selectedTheme.name}
-            </Text>
+            <Text style={styles.themeName} numberOfLines={1}>{selectedTheme.name}</Text>
           </View>
 
-          <View style={styles.headerRow}>
-            <GameHeader
-              moves={game.moves}
-              elapsedSeconds={game.elapsedSeconds}
-              settings={gameBehavior}
-            />
-          </View>
+          {!isLandscape && (
+            <View style={styles.headerRow}>
+              <GameHeader
+                moves={game.moves}
+                elapsedSeconds={game.elapsedSeconds}
+                settings={gameBehavior}
+              />
+            </View>
+          )}
 
-          {/* ── Board com scroll ──────────────────────────── */}
+          {/* ── Board com scroll sempre disponível ────────── */}
           <ScrollView
             style={styles.flex}
-            contentContainerStyle={styles.boardContent}
+            contentContainerStyle={[
+              styles.boardScroll,
+              isLandscape && styles.boardScrollLandscape,
+            ]}
             showsVerticalScrollIndicator={false}
             bounces={false}
+            overScrollMode="never"
           >
+            {isLandscape && (
+              <View style={styles.landscapeStats}>
+                <GameHeader
+                  moves={game.moves}
+                  elapsedSeconds={game.elapsedSeconds}
+                  settings={gameBehavior}
+                />
+              </View>
+            )}
             <MemoryBoard
               cards={game.cards}
-              columns={gameBehavior.gridColumns}
+              columns={isLandscape
+                ? Math.min(gameBehavior.gridColumns + 2, 8)
+                : gameBehavior.gridColumns}
               cardStyle={cardStyle}
               onFlip={game.flipCard}
             />
           </ScrollView>
 
-          {/* ── Rodapé fixo ───────────────────────────────── */}
-          <View style={styles.footer}>
+          {/* ── Rodapé ────────────────────────────────────── */}
+          <View style={[styles.footer, isLandscape && styles.footerLandscape]}>
             <AppButton
-              title="🔄 Reiniciar"
+              title="↺  Reiniciar"
               onPress={handleRestart}
               variant="secondary"
-              size="md"
+              size={isLandscape ? 'sm' : 'md'}
               fullWidth
             />
           </View>
@@ -179,25 +194,29 @@ const styles = StyleSheet.create({
   loadingText: { color: colors.text, fontSize: 16 },
 
   topBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
+    flexDirection:  'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6,
   },
+  topBarLandscape: { paddingTop: 6, paddingBottom: 4 },
+
   backBtn: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
   },
   backBtnText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
-  themeName:   { flex: 1, color: colors.text, fontSize: 17, fontWeight: '800' },
+  themeName:   { flex: 1, color: colors.text, fontSize: 16, fontWeight: '800' },
 
-  headerRow: { paddingHorizontal: 16, paddingBottom: 8 },
+  headerRow: { paddingHorizontal: 16, paddingBottom: 6 },
 
-  boardContent: { paddingHorizontal: 16, paddingBottom: 8 },
+  boardScroll:          { paddingHorizontal: 16, paddingBottom: 8 },
+  boardScrollLandscape: { paddingHorizontal: 8,  paddingBottom: 4 },
+
+  landscapeStats: { paddingBottom: 6, paddingHorizontal: 8 },
 
   footer: {
-    paddingHorizontal: 16,
-    paddingVertical:   10,
-    borderTopWidth:    1,
-    borderTopColor:    colors.border,
-    backgroundColor:   colors.surface,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: colors.border,
+    backgroundColor: colors.surface,
   },
+  footerLandscape: { paddingVertical: 6 },
 });
