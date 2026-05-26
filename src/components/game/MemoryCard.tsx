@@ -151,5 +151,3 @@ const styles = StyleSheet.create({
   absolute:     { position: 'absolute', top: 0, left: 0 },
   questionMark: { fontSize: 22, fontWeight: '900', color: colors.textMuted },
 });
-
-//test
