@@ -31,7 +31,10 @@ export default function HomeScreen() {
   function handlePlay() {
     resetTimer();
     const theme = selectedThemeId ?? themes[0]?.id;
-    router.push(theme ? `/game?themeId=${theme}` : '/game');
+    router.push({
+      pathname: '/game',
+      params: theme ? { themeId: theme } : undefined,
+    });
   }
 
   const { branding, background } = settings;

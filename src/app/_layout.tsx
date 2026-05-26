@@ -42,23 +42,28 @@ function useWebSetup() {
     // Previne pull-to-refresh e scroll do sistema
     const style = document.createElement('style');
     style.textContent = `
-      html, body {
-        overflow: hidden;
-        overscroll-behavior: none;
+      html, body, #root {
+        min-height: 100%;
         background-color: ${colors.background};
-        height: 100%;
-        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: none;
       }
-      * { -webkit-tap-highlight-color: transparent; }
+
+      body {
+        margin: 0;
+      }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
     `;
     document.head.appendChild(style);
 
     // Service Worker
-    if ('serviceWorker' in navigator) {
+    /* if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('./sw.js', { scope: './' })
         .catch((e) => console.warn('[SW]', e));
-    }
+    } */
   }, []);
 }
 
