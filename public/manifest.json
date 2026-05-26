@@ -1,40 +1,18 @@
 {
   "name": "Jogo da Memória",
   "short_name": "Memória",
-  "description": "Jogo da memória personalizável",
+  "description": "Jogo da memória personalizável — toque para jogar",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
-  "orientation": "portrait",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#0A0A0A",
   "theme_color": "#FFD600",
   "lang": "pt-BR",
-  "categories": ["games"],
+  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "./assets/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./assets/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Jogar",
-      "url": "./game",
-      "description": "Iniciar uma partida"
-    },
-    {
-      "name": "Personalizar",
-      "url": "./customize",
-      "description": "Personalizar o jogo"
-    }
+    { "src": "./assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

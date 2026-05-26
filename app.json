@@ -12,10 +12,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#0A0A0A"
     },
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.memorygame.gruposb" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.memorygame.totem" },
     "android": {
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#0A0A0A" },
-      "edgeToEdgeEnabled": true, "package": "com.memorygame.gruposb"
+      "edgeToEdgeEnabled": true, "package": "com.memorygame.totem"
     },
     "web": {
       "bundler": "metro",
@@ -23,7 +23,7 @@
       "favicon": "./assets/favicon.png",
       "name": "Jogo da Memória",
       "shortName": "Memória",
-      "description": "Jogo da memória personalizável",
+      "description": "Jogo da memória personalizável para totem e web",
       "backgroundColor": "#0A0A0A",
       "themeColor": "#FFD600",
       "lang": "pt-BR"
@@ -36,7 +36,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "baseUrl": "/memory-game"
+      "baseUrl": "/memory-game-totem"
     }
   }
 }
