@@ -1,7 +1,7 @@
 {
   "name": "Jogo da Memória",
   "short_name": "Memória",
-  "description": "Jogo da memória personalizável — ideal para totens de exposição",
+  "description": "Jogo da memória personalizável",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "background_color": "#0A0A0A",
   "theme_color": "#FFD600",
   "lang": "pt-BR",
-  "categories": ["games", "education", "entertainment"],
+  "categories": ["games"],
   "icons": [
     {
       "src": "./assets/icon-192.png",
