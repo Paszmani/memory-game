@@ -1,5 +1,10 @@
 import React, { memo } from 'react';
-import { FlatList, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import { MemoryCard }       from '@/components/game/MemoryCard';
 import { useAppSettings }   from '@/hooks/useAppSettings';
@@ -13,9 +18,17 @@ interface Props {
   onFlip:    (cardId: string) => void;
 }
 
+const H_PADDING    = 32;   // 16px cada lado
+const CARD_MARGIN  = 4;    // margem de cada lado da carta
+
 export const MemoryBoard = memo(({ cards, columns, cardStyle, onFlip }: Props) => {
-  const { settings } = useAppSettings();
+  const { settings }  = useAppSettings();
   const { animation } = settings;
+  const { width }     = useWindowDimensions();
+
+  // Calcula tamanho explícito para todas as cartas ficarem iguais
+  const totalGap  = CARD_MARGIN * 2 * columns;
+  const cardSize  = Math.floor((width - H_PADDING - totalGap) / columns);
 
   return (
     <FlatList
@@ -24,11 +37,13 @@ export const MemoryBoard = memo(({ cards, columns, cardStyle, onFlip }: Props) =
       numColumns={columns}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.content}
-      scrollEnabled={false}
+      showsVerticalScrollIndicator={false}
+      scrollEnabled={false}        // scroll gerenciado pelo pai
       removeClippedSubviews={false}
       renderItem={({ item }) => (
         <MemoryCard
           card={item}
+          size={cardSize}
           cardStyle={cardStyle}
           animSettings={{
             enabled:     animation.enabled,
@@ -45,5 +60,5 @@ export const MemoryBoard = memo(({ cards, columns, cardStyle, onFlip }: Props) =
 MemoryBoard.displayName = 'MemoryBoard';
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 4 },
+  content: { alignItems: 'center' },
 });

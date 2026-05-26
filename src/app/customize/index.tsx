@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 
 import { AnimationPicker }    from '@/components/customize/AnimationPicker';
 import { BackgroundPicker }   from '@/components/customize/BackgroundPicker';
@@ -15,39 +16,43 @@ import { ScreenContainer }    from '@/components/ui/ScreenContainer';
 import { ToggleSwitch }       from '@/components/ui/ToggleSwitch';
 import { SaveBar }            from '@/components/ui/SaveBar';
 import { useToast }           from '@/components/ui/Toast';
-import { DIFFICULTIES }       from '@/constants/difficulty';
 import { useAppSettings }     from '@/hooks/useAppSettings';
 import { useSaveState }       from '@/hooks/useSaveState';
 import { useThemeManager }    from '@/hooks/useThemeManager';
-import { CustomTheme }        from '@/types/theme';
-import { router }             from 'expo-router';
 import { colors }             from '@/constants/colors';
-import { DeepPartial, AppSettings } from '@/types/settings';
+import { AppSettings, DeepPartial } from '@/types/settings';
+import { CreateThemeInput, CustomTheme } from '@/types/theme';
+import {
+  createCustomTheme,
+  updateCustomTheme,
+} from '@/services/themeService';
 
 type Tab = 'temas' | 'visual' | 'cartas' | 'animacao' | 'jogo' | 'totem';
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
-  { key: 'temas',    icon: '🃏', label: 'Temas' },
-  { key: 'visual',   icon: '🎨', label: 'Visual' },
-  { key: 'cartas',   icon: '🂠',  label: 'Cartas' },
-  { key: 'animacao', icon: '✨', label: 'Animação' },
-  { key: 'jogo',     icon: '🎮', label: 'Jogo' },
-  { key: 'totem',    icon: '📺', label: 'Totem' },
+  { key: 'temas',    icon: '🃏', label: 'Temas'    },
+  { key: 'visual',   icon: '🎨', label: 'Visual'   },
+  { key: 'cartas',   icon: '🂠',  label: 'Cartas'   },
+  { key: 'animacao', icon: '✨', label: 'Animação'  },
+  { key: 'jogo',     icon: '🎮', label: 'Jogo'     },
+  { key: 'totem',    icon: '📺', label: 'Totem'    },
 ];
 
 export default function CustomizeScreen() {
-  const [activeTab, setActiveTab] = useState<Tab>('temas');
-  const { settings, saveSettings, updateSettings } = useAppSettings();
-  const { themes, addTheme, removeTheme }          = useThemeManager();
-  const { show: showToast }                        = useToast();
+  const [activeTab,    setActiveTab]    = useState<Tab>('temas');
+  const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
+
+  const { settings, saveSettings } = useAppSettings();
+  const { themes, loadThemes }     = useThemeManager();
+  const { show: toast }            = useToast();
 
   const makeSaver = useCallback(
     <K extends keyof AppSettings>(key: K) =>
       async (value: AppSettings[K]) => {
         await saveSettings({ ...settings, [key]: value });
-        showToast('Salvo com sucesso!', 'success');
+        toast('Salvo!', 'success');
       },
-    [settings, saveSettings, showToast],
+    [settings, saveSettings, toast],
   );
 
   const applyPreset = useCallback(async (patch: DeepPartial<AppSettings>) => {
@@ -61,25 +66,40 @@ export default function CustomizeScreen() {
       totem:        { ...settings.totem,         ...patch.totem },
     };
     await saveSettings(next);
-    showToast('Tema aplicado!', 'success');
-  }, [settings, saveSettings, showToast]);
+    toast('Tema aplicado!', 'success');
+  }, [settings, saveSettings, toast]);
 
-  const handleDeleteTheme = useCallback((theme: CustomTheme) => {
-    if (theme.isDefault) {
-      Alert.alert('Tema padrão', 'O tema padrão não pode ser removido.');
-      return;
-    }
-    Alert.alert('Remover tema', `Deseja remover "${theme.name}"?`, [
+  async function handleCreateTheme(input: CreateThemeInput) {
+    await createCustomTheme(input);
+    await loadThemes();
+    toast('Tema criado!', 'success');
+  }
+
+  async function handleEditTheme(input: CreateThemeInput) {
+    if (!editingTheme) return;
+    await updateCustomTheme(editingTheme.id, input);
+    await loadThemes();
+    setEditingTheme(null);
+    toast('Tema atualizado!', 'success');
+  }
+
+  function handleDeleteTheme(theme: CustomTheme) {
+    if (theme.isDefault) { Alert.alert('Tema padrão', 'Não pode ser removido.'); return; }
+    Alert.alert('Remover', `Remover "${theme.name}"?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Remover', style: 'destructive',
-        onPress: async () => {
-          await removeTheme(theme.id);
-          showToast('Tema removido.', 'info');
+        onPress: () => {
+          import('@/services/themeService').then(({ deleteCustomTheme }) =>
+            deleteCustomTheme(theme.id).then(() => {
+              loadThemes();
+              toast('Tema removido.', 'info');
+            })
+          );
         },
       },
     ]);
-  }, [removeTheme, showToast]);
+  }
 
   return (
     <ScreenContainer>
@@ -99,16 +119,26 @@ export default function CustomizeScreen() {
         ))}
       </View>
 
-      {/* Aba: Temas de conteúdo */}
+      {/* ── Aba: Temas ─────────────────────────────────────── */}
       {activeTab === 'temas' && (
         <>
-          <ThemeForm onSubmit={addTheme} />
-          <SectionCard title={`Temas (${themes.length})`}>
+          {editingTheme ? (
+            <ThemeForm
+              initialTheme={editingTheme}
+              onSubmit={handleEditTheme}
+              onCancel={() => setEditingTheme(null)}
+            />
+          ) : (
+            <ThemeForm onSubmit={handleCreateTheme} />
+          )}
+
+          <SectionCard title={`Temas disponíveis (${themes.length})`}>
             {themes.map((theme) => (
               <ThemeRow
                 key={theme.id}
                 theme={theme}
-                onPlay={() => router.push(`/game?difficulty=custom&themeId=${theme.id}`)}
+                onPlay={() => router.push(`/game?themeId=${theme.id}`)}
+                onEdit={() => setEditingTheme(theme)}
                 onDelete={() => handleDeleteTheme(theme)}
               />
             ))}
@@ -116,7 +146,7 @@ export default function CustomizeScreen() {
         </>
       )}
 
-      {/* Aba: Visual */}
+      {/* ── Aba: Visual ────────────────────────────────────── */}
       {activeTab === 'visual' && (
         <>
           <PresetThemesPicker onApply={applyPreset} />
@@ -126,35 +156,18 @@ export default function CustomizeScreen() {
         </>
       )}
 
-      {/* Aba: Cartas */}
-      {activeTab === 'cartas' && (
-        <CardStylePicker value={settings.cardStyle} onSave={makeSaver('cardStyle')} />
-      )}
-
-      {/* Aba: Animação */}
-      {activeTab === 'animacao' && (
-        <AnimationPicker value={settings.animation} onSave={makeSaver('animation')} />
-      )}
-
-      {/* Aba: Jogo */}
-      {activeTab === 'jogo' && (
-        <GameplaySettings value={settings.gameBehavior} onSave={makeSaver('gameBehavior')} />
-      )}
-
-      {/* Aba: Totem */}
-      {activeTab === 'totem' && (
-        <TotemSettingsTab
-          value={settings.totem}
-          onSave={makeSaver('totem')}
-        />
-      )}
+      {activeTab === 'cartas'   && <CardStylePicker   value={settings.cardStyle}    onSave={makeSaver('cardStyle')} />}
+      {activeTab === 'animacao' && <AnimationPicker   value={settings.animation}    onSave={makeSaver('animation')} />}
+      {activeTab === 'jogo'     && <GameplaySettings  value={settings.gameBehavior} onSave={makeSaver('gameBehavior')} />}
+      {activeTab === 'totem'    && <TotemTab value={settings.totem} onSave={makeSaver('totem')} />}
     </ScreenContainer>
   );
 }
 
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
-
-function ThemeRow({ theme, onPlay, onDelete }: { theme: CustomTheme; onPlay: () => void; onDelete: () => void }) {
+function ThemeRow({ theme, onPlay, onEdit, onDelete }: {
+  theme: CustomTheme; onPlay: () => void;
+  onEdit: () => void; onDelete: () => void;
+}) {
   return (
     <View style={styles.themeRow}>
       <View style={styles.themeInfo}>
@@ -163,26 +176,28 @@ function ThemeRow({ theme, onPlay, onDelete }: { theme: CustomTheme; onPlay: () 
         <Text style={styles.themeMeta}>{theme.cards.length} cartas{theme.isDefault ? ' · Padrão' : ''}</Text>
       </View>
       <View style={styles.themeActions}>
-        <AppButton title="▶ Jogar" size="sm" onPress={onPlay} />
+        <AppButton title="▶"  size="sm" onPress={onPlay} />
         {!theme.isDefault && (
-          <AppButton title="🗑" size="sm" variant="danger" onPress={onDelete} />
+          <>
+            <AppButton title="✏️" size="sm" variant="secondary" onPress={onEdit} />
+            <AppButton title="🗑" size="sm" variant="danger"    onPress={onDelete} />
+          </>
         )}
       </View>
     </View>
   );
 }
 
-function TotemSettingsTab({
-  value, onSave,
-}: { value: AppSettings['totem']; onSave: (v: AppSettings['totem']) => Promise<void> }) {
+function TotemTab({ value, onSave }: {
+  value: AppSettings['totem'];
+  onSave: (v: AppSettings['totem']) => Promise<void>;
+}) {
   const { localValue: local, status, update, save, reset } = useSaveState(value, onSave);
-  const { localValue: _ } = { localValue: local };
-
   return (
-    <SectionCard title="📺 Configurações de Totem">
-      <ToggleSwitch label="Tela de atração" hint="Exibe animação quando o totem está inativo" value={local.attractScreenEnabled} onToggle={(v) => update({ attractScreenEnabled: v })} />
-      <ToggleSwitch label="Modo quiosque"   hint="Esconde botões de navegação do sistema"      value={local.kioskMode}            onToggle={(v) => update({ kioskMode: v })} />
-      <ToggleSwitch label="Exibir marca"    hint="Mostra título e logo na tela de atração"     value={local.showBranding}         onToggle={(v) => update({ showBranding: v })} />
+    <SectionCard title="📺 Totem">
+      <ToggleSwitch label="Tela de atração" value={local.attractScreenEnabled} onToggle={(v) => update({ attractScreenEnabled: v })} />
+      <ToggleSwitch label="Modo quiosque"   value={local.kioskMode}            onToggle={(v) => update({ kioskMode: v })} />
+      <ToggleSwitch label="Exibir marca"    value={local.showBranding}         onToggle={(v) => update({ showBranding: v })} />
       <SaveBar status={status} onSave={save} onReset={reset} />
     </SectionCard>
   );
@@ -190,38 +205,22 @@ function TotemSettingsTab({
 
 const styles = StyleSheet.create({
   tabBar: {
-    flexDirection:   'row',
-    backgroundColor: colors.surface,
-    borderRadius:    18,
-    padding:         4,
-    borderWidth:     1,
-    borderColor:     colors.border,
-    flexWrap:        'wrap',
-    gap:             2,
+    flexDirection: 'row', backgroundColor: colors.surface,
+    borderRadius: 18, padding: 4, borderWidth: 1, borderColor: colors.border,
+    flexWrap: 'wrap', gap: 2,
   },
-  tab: {
-    flex:            1,
-    minWidth:        50,
-    alignItems:      'center',
-    paddingVertical: 10,
-    borderRadius:    14,
-    gap:             2,
-  },
-  tabActive: { backgroundColor: colors.primaryGlow },
-  tabIcon:   { fontSize: 18 },
-  tabLabel:  { color: colors.textMuted,  fontSize: 11, fontWeight: '700' },
-  tabLabelActive: { color: colors.primary },
+  tab:           { flex: 1, minWidth: 48, alignItems: 'center', paddingVertical: 8, borderRadius: 14, gap: 2 },
+  tabActive:     { backgroundColor: colors.primaryGlow },
+  tabIcon:       { fontSize: 18 },
+  tabLabel:      { color: colors.textMuted,  fontSize: 10, fontWeight: '700' },
+  tabLabelActive:{ color: colors.primary },
   themeRow: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    gap:            12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   themeInfo:    { flex: 1, gap: 2 },
-  themeName:    { color: colors.text,          fontSize: 16, fontWeight: '700' },
-  themeDesc:    { color: colors.textMuted,     fontSize: 13 },
-  themeMeta:    { color: colors.textSecondary, fontSize: 12 },
+  themeName:    { color: colors.text,          fontSize: 15, fontWeight: '700' },
+  themeDesc:    { color: colors.textMuted,     fontSize: 12 },
+  themeMeta:    { color: colors.textSecondary, fontSize: 11 },
   themeActions: { flexDirection: 'row', gap: 6 },
 });

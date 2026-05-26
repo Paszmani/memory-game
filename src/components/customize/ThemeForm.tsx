@@ -1,135 +1,160 @@
-import React, { memo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { memo, useRef, useState } from 'react';
+import {
+  Alert, Pressable, ScrollView,
+  StyleSheet, Text, TextInput, View,
+} from 'react-native';
 
 import { CustomCardPreview } from '@/components/customize/CustomCardPreview';
 import { ImagePickerButton } from '@/components/customize/ImagePickerButton';
-import { AppButton } from '@/components/ui/AppButton';
-import { SectionCard } from '@/components/ui/SectionCard';
-import { colors } from '@/constants/colors';
-import { CreateThemeInput, CustomThemeCard } from '@/types/theme';
-import { createId } from '@/utils/id';
+import { AppButton }         from '@/components/ui/AppButton';
+import { SectionCard }       from '@/components/ui/SectionCard';
+import { colors }            from '@/constants/colors';
+import { CreateThemeInput, CustomTheme, CustomThemeCard } from '@/types/theme';
+import { createId }          from '@/utils/id';
 
 interface Props {
-  onSubmit: (input: CreateThemeInput) => Promise<void>;
+  onSubmit:     (input: CreateThemeInput) => Promise<void>;
+  initialTheme?: CustomTheme;   // para modo de edição
+  onCancel?:    () => void;
 }
 
-const EMPTY_STATE = { name: '', description: '', emoji: '' };
+const EMOJI_GROUPS: { label: string; emojis: string[] }[] = [
+  { label: 'Animais', emojis: ['🐱','🐶','🦊','🐼','🦁','🐵','🐸','🐧','🦋','🐳','🦄','🐢','🦉','🐺','🦅','🐊'] },
+  { label: 'Comidas', emojis: ['🍕','🍔','🍎','🍓','🌮','🍦','🍩','🎂','🍿','🥑','🍣','🍜','🍉','🥕','🍌','🧁'] },
+  { label: 'Objetos', emojis: ['🎮','🎯','🏆','💡','🔮','🎸','🎨','🚀','⚽','🎲','🧩','🎪','📷','🎧','🎻','🎺'] },
+  { label: 'Natureza', emojis: ['⭐','🌟','🌈','🌺','🍀','🌻','🌙','☀️','❄️','🌊','🔥','💎','🌸','🍁','⚡','🌴'] },
+  { label: 'Símbolos', emojis: ['❤️','💛','💚','💙','💜','🖤','🤍','💯','🔑','🎁','🏅','🌀','♾️','✨','💫','🔔'] },
+];
 
-export const ThemeForm = memo(({ onSubmit }: Props) => {
-  const [fields,    setFields]    = useState(EMPTY_STATE);
-  const [cards,     setCards]     = useState<CustomThemeCard[]>([]);
-  const [isSaving,  setIsSaving]  = useState(false);
+export const ThemeForm = memo(({ onSubmit, initialTheme, onCancel }: Props) => {
+  const [name,      setName]     = useState(initialTheme?.name        ?? '');
+  const [desc,      setDesc]     = useState(initialTheme?.description ?? '');
+  const [cards,     setCards]    = useState<CustomThemeCard[]>(initialTheme?.cards ?? []);
+  const [isSaving,  setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const descRef = useRef<TextInput>(null);
 
-  function setField(key: keyof typeof EMPTY_STATE, value: string) {
-    setFields((prev) => ({ ...prev, [key]: value }));
-  }
+  const isEditing = !!initialTheme;
 
-  function addEmojiCard() {
-    const emoji = fields.emoji.trim();
-    if (!emoji) {
-      Alert.alert('Emoji inválido', 'Digite um emoji antes de adicionar.');
-      return;
-    }
-
-    const card: CustomThemeCard = {
-      id:    createId('card'),
-      label: `Emoji ${cards.length + 1}`,
-      emoji,
-    };
-
-    setCards((prev) => [...prev, card]);
-    setField('emoji', '');
+  function addEmojiCard(emoji: string) {
+    setCards((prev) => [
+      ...prev,
+      { id: createId('card'), label: emoji, emoji },
+    ]);
   }
 
   function addImageCard(uri: string) {
-    const card: CustomThemeCard = {
-      id:       createId('card'),
-      label:    `Imagem ${cards.length + 1}`,
-      imageUri: uri,
-    };
-    setCards((prev) => [...prev, card]);
+    setCards((prev) => [
+      ...prev,
+      { id: createId('card'), label: `Imagem ${prev.length + 1}`, imageUri: uri },
+    ]);
   }
 
-  function removeCard(cardId: string) {
-    setCards((prev) => prev.filter((c) => c.id !== cardId));
+  function removeCard(id: string) {
+    setCards((prev) => prev.filter((c) => c.id !== id));
   }
 
   async function handleSave() {
+    if (!name.trim() || name.trim().length < 2) {
+      Alert.alert('Nome inválido', 'O nome deve ter pelo menos 2 caracteres.');
+      return;
+    }
+    if (cards.length < 2) {
+      Alert.alert('Cartas insuficientes', 'Adicione pelo menos 2 cartas ao tema.');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await onSubmit({
-        name:        fields.name,
-        description: fields.description || undefined,
-        cards,
-      });
-      setFields(EMPTY_STATE);
-      setCards([]);
-      Alert.alert('✅ Tema criado', 'Seu tema personalizado foi salvo!');
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Erro ao salvar o tema.';
-      Alert.alert('Erro', msg);
+      await onSubmit({ name: name.trim(), description: desc.trim() || undefined, cards });
+      if (!isEditing) { setName(''); setDesc(''); setCards([]); }
+      Alert.alert(isEditing ? '✅ Tema atualizado!' : '✅ Tema criado!', '');
+      onCancel?.();
+    } catch (e) {
+      Alert.alert('Erro', e instanceof Error ? e.message : 'Falha ao salvar.');
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <SectionCard title="Criar novo tema">
+    <SectionCard title={isEditing ? `✏️ Editar: ${initialTheme!.name}` : '➕ Novo tema'}>
+      {/* Nome */}
       <TextInput
-        value={fields.name}
-        onChangeText={(v) => setField('name', v)}
-        placeholder="Nome do tema  (ex: Animais)"
+        value={name}
+        onChangeText={setName}
+        placeholder="Nome do tema"
         placeholderTextColor={colors.textMuted}
         style={styles.input}
+        returnKeyType="next"
+        onSubmitEditing={() => descRef.current?.focus()}
       />
-
       <TextInput
-        value={fields.description}
-        onChangeText={(v) => setField('description', v)}
+        ref={descRef}
+        value={desc}
+        onChangeText={setDesc}
         placeholder="Descrição (opcional)"
         placeholderTextColor={colors.textMuted}
         style={styles.input}
+        returnKeyType="done"
       />
 
-      {/* Adicionar emoji */}
-      <View style={styles.row}>
-        <TextInput
-          value={fields.emoji}
-          onChangeText={(v) => setField('emoji', v)}
-          placeholder="🐱 Digite um emoji"
-          placeholderTextColor={colors.textMuted}
-          style={[styles.input, styles.emojiInput]}
-        />
-        <AppButton title="+" onPress={addEmojiCard} size="md" style={styles.addBtn} />
+      {/* Adicionar carta */}
+      <View style={styles.addSection}>
+        <Text style={styles.addLabel}>Adicionar cartas</Text>
+
+        {/* Abas de grupos de emoji */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabRow}>
+          {EMOJI_GROUPS.map((g, i) => (
+            <Pressable key={g.label} onPress={() => setActiveTab(i)}
+              style={[styles.tab, activeTab === i && styles.tabActive]}>
+              <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>
+                {g.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        {/* Grade de emojis */}
+        <View style={styles.emojiGrid}>
+          {EMOJI_GROUPS[activeTab]?.emojis.map((em) => (
+            <Pressable key={em} onPress={() => addEmojiCard(em)} style={styles.emojiBtn}>
+              <Text style={styles.emojiItem}>{em}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Imagem */}
+        <ImagePickerButton label="📷 Adicionar imagem" onImagePicked={addImageCard} />
       </View>
 
-      <ImagePickerButton onImagePicked={addImageCard} />
-
       {/* Preview das cartas */}
-      {cards.length > 0 ? (
+      {cards.length > 0 && (
         <>
-          <Text style={styles.cardsLabel}>{cards.length} carta(s) adicionada(s)</Text>
+          <Text style={styles.countLabel}>{cards.length} carta(s)</Text>
           <View style={styles.cardsGrid}>
-            {cards.map((card) => (
-              <CustomCardPreview
-                key={card.id}
-                card={card}
-                onRemove={() => removeCard(card.id)}
-              />
+            {cards.map((c) => (
+              <CustomCardPreview key={c.id} card={c} onRemove={() => removeCard(c.id)} />
             ))}
           </View>
         </>
-      ) : (
-        <Text style={styles.emptyHint}>Adicione emojis ou imagens acima para criar cartas.</Text>
       )}
 
-      <AppButton
-        title={isSaving ? 'Salvando...' : 'Salvar tema'}
-        onPress={handleSave}
-        disabled={isSaving || cards.length < 2 || !fields.name.trim()}
-        fullWidth
-        size="lg"
-      />
+      {/* Ações */}
+      <View style={styles.actions}>
+        {onCancel && (
+          <AppButton title="Cancelar" onPress={onCancel} variant="ghost"
+            size="md" style={styles.actionBtn} />
+        )}
+        <AppButton
+          title={isSaving ? 'Salvando...' : isEditing ? '💾 Atualizar' : '💾 Salvar tema'}
+          onPress={handleSave}
+          disabled={isSaving || cards.length < 2 || !name.trim()}
+          size="md"
+          style={styles.actionBtn}
+        />
+      </View>
     </SectionCard>
   );
 });
@@ -138,42 +163,29 @@ ThemeForm.displayName = 'ThemeForm';
 
 const styles = StyleSheet.create({
   input: {
-    minHeight:        50,
-    backgroundColor:  colors.background,
-    borderRadius:     14,
-    paddingHorizontal: 16,
-    color:            colors.text,
-    borderWidth:      1,
-    borderColor:      colors.border,
-    fontSize:         15,
+    minHeight: 50, backgroundColor: colors.background,
+    borderRadius: 14, paddingHorizontal: 16,
+    color: colors.text, borderWidth: 1, borderColor: colors.border, fontSize: 15,
   },
-  row: {
-    flexDirection: 'row',
-    gap:           10,
-    alignItems:    'center',
+  addSection:  { gap: 10 },
+  addLabel:    { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  tabRow:      { gap: 8, paddingVertical: 4 },
+  tab: {
+    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20,
+    borderWidth: 1.5, borderColor: colors.border,
   },
-  emojiInput: {
-    flex:     1,
-    fontSize: 22,
+  tabActive:     { borderColor: colors.primary, backgroundColor: colors.primaryGlow },
+  tabText:       { color: colors.textMuted,  fontSize: 12, fontWeight: '600' },
+  tabTextActive: { color: colors.primary },
+  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  emojiBtn:  {
+    width: 48, height: 48, borderRadius: 12,
+    backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
-  addBtn: {
-    width:  52,
-    height: 52,
-  },
-  cardsLabel: {
-    color:      colors.textSecondary,
-    fontSize:   13,
-    fontWeight: '600',
-  },
-  cardsGrid: {
-    flexDirection: 'row',
-    flexWrap:      'wrap',
-    gap:           8,
-  },
-  emptyHint: {
-    color:     colors.textMuted,
-    fontSize:  14,
-    textAlign: 'center',
-    paddingVertical: 8,
-  },
+  emojiItem: { fontSize: 26 },
+  countLabel:{ color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  cardsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  actions:   { flexDirection: 'row', gap: 10 },
+  actionBtn: { flex: 1 },
 });

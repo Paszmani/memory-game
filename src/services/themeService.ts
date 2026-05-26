@@ -57,3 +57,30 @@ export async function deleteCustomTheme(themeId: string): Promise<void> {
 export async function clearCustomThemes(): Promise<void> {
   await removeItem(STORAGE_KEYS.customThemes);
 }
+
+export async function getCustomThemes(): Promise<CustomTheme[]> {
+  return getJson<CustomTheme[]>(STORAGE_KEYS.customThemes, []);
+}
+
+export async function updateCustomTheme(
+  id: string,
+  input: Partial<CreateThemeInput>,
+): Promise<CustomTheme> {
+  const themes = await getCustomThemes();
+  const index  = themes.findIndex((t) => t.id === id);
+
+  if (index === -1) throw new Error('Tema não encontrado.');
+
+  const updated: CustomTheme = {
+    ...themes[index],
+    ...(input.name        ? { name:        input.name.trim() }        : {}),
+    ...(input.description ? { description: input.description.trim() } : {}),
+    ...(input.cards       ? { cards:       input.cards }               : {}),
+    updatedAt: new Date().toISOString(),
+  };
+
+  themes[index] = updated;
+  await setJson(STORAGE_KEYS.customThemes, themes);
+
+  return updated;
+}

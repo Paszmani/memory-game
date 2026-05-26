@@ -1,25 +1,29 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator, Pressable, SafeAreaView,
+  ScrollView, StyleSheet, Text, View,
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
-import { AttractScreen }      from '@/components/game/AttractScreen';
-import { GameFinishedModal }  from '@/components/game/GameFinishedModal';
-import { GameHeader }         from '@/components/game/GameHeader';
-import { MemoryBoard }        from '@/components/game/MemoryBoard';
+import { AttractScreen }     from '@/components/game/AttractScreen';
+import { GameFinishedModal } from '@/components/game/GameFinishedModal';
+import { GameHeader }        from '@/components/game/GameHeader';
+import { MemoryBoard }       from '@/components/game/MemoryBoard';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { AppButton }          from '@/components/ui/AppButton';
-import { colors }             from '@/constants/colors';
-import { useAppSettings }     from '@/hooks/useAppSettings';
-import { useAttractScreen }   from '@/hooks/useAttractScreen';
-import { useMemoryGame }      from '@/hooks/useMemoryGame';
-import { useThemeManager }    from '@/hooks/useThemeManager';
-import { saveGameResult }     from '@/services/scoreService';
-import { GameResult }         from '@/types/game';
-import { createId }           from '@/utils/id';
+import { AppButton }         from '@/components/ui/AppButton';
+import { colors }            from '@/constants/colors';
+import { useAppSettings }    from '@/hooks/useAppSettings';
+import { useAttractScreen }  from '@/hooks/useAttractScreen';
+import { useMemoryGame }     from '@/hooks/useMemoryGame';
+import { useThemeManager }   from '@/hooks/useThemeManager';
+import { saveGameResult }    from '@/services/scoreService';
+import { GameResult }        from '@/types/game';
+import { createId }          from '@/utils/id';
 
 export default function GameScreen() {
-  const params            = useLocalSearchParams();
-  const { settings }      = useAppSettings();   // ← contexto global
+  const params              = useLocalSearchParams();
+  const { settings }        = useAppSettings();
   const { themes, isLoading } = useThemeManager();
 
   const selectedThemeId = typeof params.themeId === 'string' ? params.themeId : undefined;
@@ -47,7 +51,6 @@ export default function GameScreen() {
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
 
-  // Salva resultado ao finalizar
   useEffect(() => {
     if (!game.isFinished || !selectedTheme || hasSavedRef.current) return;
     hasSavedRef.current = true;
@@ -62,7 +65,6 @@ export default function GameScreen() {
     };
     void saveGameResult(result);
 
-    // Auto-reset totem
     if (settings.totem.autoResetAfterFinishSeconds > 0) {
       autoResetRef.current = setTimeout(
         () => router.replace('/'),
@@ -71,7 +73,9 @@ export default function GameScreen() {
     }
   }, [game.isFinished, game.moves, game.elapsedSeconds, selectedTheme, settings.totem]);
 
-  useEffect(() => () => { if (autoResetRef.current) clearTimeout(autoResetRef.current); }, []);
+  useEffect(() => () => {
+    if (autoResetRef.current) clearTimeout(autoResetRef.current);
+  }, []);
 
   const handleRestart = useCallback(() => {
     if (autoResetRef.current) clearTimeout(autoResetRef.current);
@@ -96,40 +100,65 @@ export default function GameScreen() {
 
   return (
     <GradientBackground settings={settings.background} style={styles.container}>
-      {isActive && (
-        <AttractScreen
-          gameTitle={settings.branding.gameTitle}
-          message={settings.totem.attractMessage}
-          onDismiss={deactivate}
-        />
-      )}
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.safe}>
 
-      <Pressable style={styles.flex} onPress={resetTimer}>
-        <View style={styles.content}>
-          {/* Barra superior */}
+        {isActive && (
+          <AttractScreen
+            gameTitle={settings.branding.gameTitle}
+            message={settings.totem.attractMessage}
+            onDismiss={deactivate}
+          />
+        )}
+
+        <Pressable style={styles.flex} onPress={resetTimer}>
+
+          {/* ── Cabeçalho fixo ─────────────────────────────── */}
           <View style={styles.topBar}>
             <Pressable onPress={handleGoHome} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>← Início</Text>
+              <Text style={styles.backBtnText}>‹ Início</Text>
             </Pressable>
-            <Text style={styles.themeName} numberOfLines={1}>{selectedTheme.name}</Text>
+            <Text style={styles.themeName} numberOfLines={1}>
+              {selectedTheme.name}
+            </Text>
           </View>
 
-          <GameHeader
-            moves={game.moves}
-            elapsedSeconds={game.elapsedSeconds}
-            settings={gameBehavior}
-          />
+          <View style={styles.headerRow}>
+            <GameHeader
+              moves={game.moves}
+              elapsedSeconds={game.elapsedSeconds}
+              settings={gameBehavior}
+            />
+          </View>
 
-          <MemoryBoard
-            cards={game.cards}
-            columns={gameBehavior.gridColumns}
-            cardStyle={cardStyle}
-            onFlip={game.flipCard}
-          />
+          {/* ── Board com scroll ──────────────────────────── */}
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.boardContent}
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
+            <MemoryBoard
+              cards={game.cards}
+              columns={gameBehavior.gridColumns}
+              cardStyle={cardStyle}
+              onFlip={game.flipCard}
+            />
+          </ScrollView>
 
-          <AppButton title="🔄 Reiniciar" onPress={handleRestart} variant="ghost" size="md" />
-        </View>
-      </Pressable>
+          {/* ── Rodapé fixo ───────────────────────────────── */}
+          <View style={styles.footer}>
+            <AppButton
+              title="🔄 Reiniciar"
+              onPress={handleRestart}
+              variant="secondary"
+              size="md"
+              fullWidth
+            />
+          </View>
+
+        </Pressable>
+      </SafeAreaView>
 
       <GameFinishedModal
         visible={game.isFinished}
@@ -144,19 +173,31 @@ export default function GameScreen() {
 
 const styles = StyleSheet.create({
   container:   { flex: 1 },
+  safe:        { flex: 1 },
   flex:        { flex: 1 },
   center:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText: { color: colors.text, fontSize: 16 },
-  content:     { flex: 1, padding: 16, gap: 12 },
-  topBar:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8 },
-  backBtn: {
-    paddingHorizontal: 14,
-    paddingVertical:   8,
-    borderRadius:      10,
-    backgroundColor:   colors.surface,
-    borderWidth:       1,
-    borderColor:       colors.border,
+
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
   },
-  backBtnText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
-  themeName:   { flex: 1, color: colors.text, fontSize: 18, fontWeight: '800' },
+  backBtn: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+  },
+  backBtnText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
+  themeName:   { flex: 1, color: colors.text, fontSize: 17, fontWeight: '800' },
+
+  headerRow: { paddingHorizontal: 16, paddingBottom: 8 },
+
+  boardContent: { paddingHorizontal: 16, paddingBottom: 8 },
+
+  footer: {
+    paddingHorizontal: 16,
+    paddingVertical:   10,
+    borderTopWidth:    1,
+    borderTopColor:    colors.border,
+    backgroundColor:   colors.surface,
+  },
 });
