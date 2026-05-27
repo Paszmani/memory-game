@@ -85,7 +85,7 @@ export interface TotemSettings {
   attractScreenEnabled:        boolean;
   attractTimeoutSeconds:       number;
   attractMessage:              string;
-  attractImageUri?:            string;   // ← NOVO: imagem da tela de atração
+  attractCenterImageUri?:      string;   
   autoResetAfterFinishSeconds: number;
   kioskMode:                   boolean;
   showBranding:                boolean;

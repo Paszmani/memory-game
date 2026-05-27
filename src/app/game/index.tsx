@@ -109,6 +109,7 @@ export default function GameScreen() {
             <AttractScreen
               gameTitle={settings.branding.gameTitle}
               message={settings.totem.attractMessage}
+              centerImageUri={settings.totem.attractCenterImageUri}  // ← atualizado
               onDismiss={deactivate}
             />
           )}

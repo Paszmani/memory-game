@@ -1,100 +1,67 @@
 import React, { memo, useCallback, useRef } from 'react';
 import {
-  GestureResponderEvent,
-  LayoutChangeEvent,
-  PanResponder,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
+  Animated, PanResponder, StyleSheet,
+  Text, View,
 } from 'react-native';
-
-import { colors } from '@/constants/colors';
+import { useColors } from '@/hooks/useColors';
 
 interface Props {
-  label:      string;
-  value:      number;
-  min:        number;
-  max:        number;
-  step?:      number;
-  unit?:      string;
-  onChange:   (value: number) => void;
-  style?:     ViewStyle;
+  label:        string;
+  value:        number;
+  min:          number;
+  max:          number;
+  step?:        number;
+  unit?:        string;
+  onChange:     (v: number) => void;
   formatValue?: (v: number) => string;
 }
 
 export const SliderInput = memo(({
-  label,
-  value,
-  min,
-  max,
-  step       = 1,
-  unit       = '',
-  onChange,
-  style,
-  formatValue,
+  label, value, min, max, step = 1, unit = '', onChange, formatValue,
 }: Props) => {
-  const trackWidth = useRef(0);
-  const ratio      = (value - min) / (max - min);
+  const colors = useColors();
 
-  const clamp = (v: number) => Math.max(min, Math.min(max, v));
+  const trackW = useRef(0);
+  const baseX  = useRef(0);
 
-  const snapToStep = (v: number): number => {
-    if (step <= 0) return clamp(v);
-    return clamp(Math.round((v - min) / step) * step + min);
-  };
+  function clamp(v: number) {
+    const snapped = Math.round(v / step) * step;
+    return Math.max(min, Math.min(max, snapped));
+  }
 
-  const handleTrackLayout = (e: LayoutChangeEvent) => {
-    trackWidth.current = e.nativeEvent.layout.width;
-  };
+  const xFromValue = useCallback((v: number) =>
+    ((v - min) / (max - min)) * (trackW.current || 200),
+  [min, max]);
 
-  const posToValue = (pageX: number, trackX: number): number => {
-    const pos = pageX - trackX;
-    const raw = (pos / trackWidth.current) * (max - min) + min;
-    return snapToStep(raw);
-  };
-
-  const trackRef = useRef<View>(null);
-
-  const panResponder = useRef(
+  const pan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder:  () => true,
-      onPanResponderGrant: (e) => {
-        trackRef.current?.measure((_x, _y, _w, _h, pageX) => {
-          onChange(posToValue(e.nativeEvent.pageX, pageX));
-        });
-      },
-      onPanResponderMove: (e) => {
-        trackRef.current?.measure((_x, _y, _w, _h, pageX) => {
-          onChange(posToValue(e.nativeEvent.pageX, pageX));
-        });
+      onStartShouldSetPanResponder:  () => true,
+      onMoveShouldSetPanResponder:   () => true,
+      onPanResponderGrant: (_e, gs) => { baseX.current = xFromValue(value) - gs.x0; },
+      onPanResponderMove: (_e, gs) => {
+        const rawX  = gs.moveX + baseX.current;
+        const ratio = Math.max(0, Math.min(1, rawX / (trackW.current || 200)));
+        onChange(clamp(min + ratio * (max - min)));
       },
     }),
   ).current;
 
-  const displayValue = formatValue
-    ? formatValue(value)
-    : `${value}${unit}`;
+  const filled = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const display = formatValue ? formatValue(value) : `${value}${unit}`;
 
   return (
-    <View style={[styles.container, style]}>
-      <View style={styles.header}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.valueText}>{displayValue}</Text>
+    <View style={styles.wrap}>
+      <View style={styles.top}>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
+        <Text style={[styles.val,   { color: colors.primary }]}>{display}</Text>
       </View>
-
-      <View ref={trackRef} onLayout={handleTrackLayout} {...panResponder.panHandlers}>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${ratio * 100}%` as `${number}%` }]} />
-          <View style={[styles.thumb, { left: `${ratio * 100}%` as `${number}%` }]} />
-        </View>
-
-        {/* Marcadores de min/max */}
-        <View style={styles.range}>
-          <Text style={styles.rangeText}>{min}{unit}</Text>
-          <Text style={styles.rangeText}>{max}{unit}</Text>
-        </View>
+      <View
+        style={[styles.track, { backgroundColor: colors.surface }]}
+        onLayout={(e) => { trackW.current = e.nativeEvent.layout.width; }}
+        {...pan.panHandlers}
+      >
+        <View style={[styles.filled, { width: `${filled}%`, backgroundColor: colors.primary }]} />
+        <View style={[styles.thumb, { left: `${filled}%`, borderColor: colors.primary }]} />
       </View>
     </View>
   );
@@ -102,59 +69,19 @@ export const SliderInput = memo(({
 
 SliderInput.displayName = 'SliderInput';
 
-const THUMB = 22;
-
 const styles = StyleSheet.create({
-  container: { gap: 10 },
-  header: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-    alignItems:     'center',
+  wrap:   { gap: 10 },
+  top:    { flexDirection: 'row', justifyContent: 'space-between' },
+  label:  { fontSize: 14, fontWeight: '600' },
+  val:    { fontSize: 14, fontWeight: '800' },
+  track:  { height: 6, borderRadius: 3, position: 'relative', justifyContent: 'center' },
+  filled: { height: 6, borderRadius: 3, position: 'absolute', left: 0 },
+  thumb:  {
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: '#FFFFFF', borderWidth: 2,
+    position: 'absolute', marginLeft: -10,
+    top: -7,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3, shadowRadius: 2, elevation: 2,
   },
-  label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
-  valueText: {
-    color:           colors.primary,
-    fontSize:        14,
-    fontWeight:      '700',
-    backgroundColor: colors.primaryGlow,
-    paddingHorizontal: 10,
-    paddingVertical:   3,
-    borderRadius:    8,
-  },
-  track: {
-    height:          6,
-    backgroundColor: colors.surfaceLight,
-    borderRadius:    3,
-    marginHorizontal: THUMB / 2,
-    position:        'relative',
-    justifyContent:  'center',
-  },
-  fill: {
-    position:        'absolute',
-    left:            0,
-    top:             0,
-    bottom:          0,
-    backgroundColor: colors.primary,
-    borderRadius:    3,
-  },
-  thumb: {
-    position:        'absolute',
-    width:           THUMB,
-    height:          THUMB,
-    borderRadius:    THUMB / 2,
-    backgroundColor: colors.primary,
-    marginLeft:      -(THUMB / 2),
-    top:             -(THUMB / 2 - 3),
-    shadowColor:     colors.primary,
-    shadowOffset:    { width: 0, height: 0 },
-    shadowOpacity:   0.5,
-    shadowRadius:    4,
-    elevation:       4,
-  },
-  range: {
-    flexDirection:  'row',
-    justifyContent: 'space-between',
-    marginTop:      6,
-  },
-  rangeText: { color: colors.textMuted, fontSize: 11 },
 });

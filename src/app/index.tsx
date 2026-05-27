@@ -13,6 +13,7 @@ import { useAppSettings }     from '@/hooks/useAppSettings';
 import { useAttractScreen }   from '@/hooks/useAttractScreen';
 import { useThemeManager }    from '@/hooks/useThemeManager';
 import { CustomTheme }        from '@/types/theme';
+import { useColors } from '@/hooks/useColors';
 
 // ── Botão de navegação com animação de press ─────────────────────────────────
 interface NavBtnProps {
@@ -23,20 +24,19 @@ interface NavBtnProps {
 
 function NavButton({ icon, label, onPress }: NavBtnProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const colors = useColors();
 
   function onIn()  { Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start(); }
   function onOut() { Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 50 }).start(); }
 
   return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={onIn}
-      onPressOut={onOut}
-      style={styles.navBtnWrap}
-    >
-      <Animated.View style={[styles.navBtn, { transform: [{ scale }] }]}>
-        <Text style={styles.navIcon}>{icon}</Text>
-        <Text style={styles.navLabel}>{label}</Text>
+    <Pressable onPress={onPress} onPressIn={onIn} onPressOut={onOut} style={styles.navBtnWrap}>
+      <Animated.View style={[
+        styles.navBtn,
+        { transform: [{ scale }], borderColor: colors.border, backgroundColor: colors.surface },
+      ]}>
+        <Text style={[styles.navIcon,  { color: colors.primary }]}>{icon}</Text>
+        <Text style={[styles.navLabel, { color: colors.textSecondary }]}>{label}</Text>
       </Animated.View>
     </Pressable>
   );
@@ -71,7 +71,6 @@ export default function HomeScreen() {
         <AttractScreen
           gameTitle={branding.gameTitle}
           message={totem.attractMessage}
-          imageUri={totem.attractImageUri}
           onDismiss={deactivate}
         />
       )}

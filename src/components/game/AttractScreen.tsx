@@ -1,25 +1,30 @@
 import React, { memo, useEffect, useRef } from 'react';
-import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
-
-import { colors } from '@/constants/colors';
+import {
+  Animated, Pressable, StyleSheet, Text, View,
+} from 'react-native';
+import { Image } from 'expo-image';
+import { useColors } from '@/hooks/useColors';
 
 interface Props {
-  message:     string;
-  gameTitle:   string;
-  imageUri?:   string;      // ← NOVO
-  onDismiss:   () => void;
+  message:              string;
+  gameTitle:            string;
+  centerImageUri?:      string;   // substitui emoji central
+  onDismiss:            () => void;
 }
 
-export const AttractScreen = memo(({ message, gameTitle, imageUri, onDismiss }: Props) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+export const AttractScreen = memo(({
+  message, gameTitle, centerImageUri, onDismiss,
+}: Props) => {
+  const colors     = useColors();
+  const pulseAnim  = useRef(new Animated.Value(1)).current;
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
 
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.06, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.08, duration: 900, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1,    duration: 900, useNativeDriver: true }),
       ]),
     );
@@ -28,32 +33,32 @@ export const AttractScreen = memo(({ message, gameTitle, imageUri, onDismiss }: 
   }, [pulseAnim, fadeAnim]);
 
   return (
-    <Pressable style={styles.container} onPress={onDismiss}>
-      {/* Imagem de fundo personalizada */}
-      {imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode="cover"
-        />
-      ) : null}
-
-      {/* Overlay escuro sobre a imagem */}
-      <View style={[
-        StyleSheet.absoluteFillObject,
-        { backgroundColor: imageUri ? 'rgba(0,0,0,0.65)' : colors.overlay },
-      ]} />
-
+    <Pressable
+      style={[styles.container, { backgroundColor: 'rgba(0,0,0,0.82)' }]}
+      onPress={onDismiss}
+    >
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        <Text style={styles.title}>{gameTitle}</Text>
+        <Text style={[styles.title, { color: colors.primary }]}>{gameTitle}</Text>
 
+        {/* Círculo central — emoji ou imagem customizada */}
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <View style={styles.touchIndicator}>
-            <Text style={styles.touchIcon}>👆</Text>
+          <View style={[
+            styles.circle,
+            { borderColor: colors.primary, backgroundColor: colors.primaryGlow },
+          ]}>
+            {centerImageUri ? (
+              <Image
+                source={{ uri: centerImageUri }}
+                style={styles.centerImage}
+                contentFit="cover"
+              />
+            ) : (
+              <Text style={styles.touchIcon}>👆</Text>
+            )}
           </View>
         </Animated.View>
 
-        <Text style={styles.message}>{message}</Text>
+        <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
       </Animated.View>
     </Pressable>
   );
@@ -64,29 +69,26 @@ AttractScreen.displayName = 'AttractScreen';
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center', justifyContent: 'center',
-    zIndex: 999,
+    alignItems: 'center', justifyContent: 'center', zIndex: 999,
   },
-  content: { alignItems: 'center', gap: 32, padding: 40 },
+  content:   { alignItems: 'center', gap: 36, padding: 40 },
   title: {
-    color: colors.primary, fontSize: 48, fontWeight: '900',
+    fontSize: 48, fontWeight: '900',
     textAlign: 'center', letterSpacing: -1,
     textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
   },
-  touchIndicator: {
-    width: 120, height: 120, borderRadius: 60,
-    backgroundColor: colors.primaryGlow,
-    borderWidth: 3, borderColor: colors.primary,
+  circle: {
+    width: 130, height: 130, borderRadius: 65,
+    borderWidth: 3,
     alignItems: 'center', justifyContent: 'center',
+    overflow: 'hidden',
   },
-  touchIcon: { fontSize: 52 },
+  centerImage: { width: 130, height: 130 },
+  touchIcon:   { fontSize: 54 },
   message: {
-    color: colors.textSecondary, fontSize: 22,
-    fontWeight: '600', textAlign: 'center',
+    fontSize: 22, fontWeight: '600', textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
 });

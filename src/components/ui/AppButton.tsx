@@ -1,89 +1,87 @@
-import React, { memo } from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
-
-import { colors }         from '@/constants/colors';
-import { useAppSettings } from '@/hooks/useAppSettings';
+import React, { memo, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text } from 'react-native';
+import { useColors }        from '@/hooks/useColors';
+import { useAppSettings }   from '@/hooks/useAppSettings';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success' | 'warning';
 type Size    = 'sm' | 'md' | 'lg' | 'xl';
 
 interface Props {
-  title:      string;
-  onPress:    () => void;
-  variant?:   Variant;
-  size?:      Size;
-  disabled?:  boolean;
+  title:     string;
+  onPress:   () => void;
+  variant?:  Variant;
+  size?:     Size;
   fullWidth?: boolean;
-  style?:     ViewStyle;
-  icon?:      React.ReactNode;
+  disabled?:  boolean;
 }
 
-const SIZE_CONFIG: Record<Size, { height: number; paddingH: number; fontSize: number; radius: number }> = {
-  sm: { height: 38, paddingH: 14, fontSize: 13, radius: 10 },
-  md: { height: 52, paddingH: 20, fontSize: 16, radius: 14 },
-  lg: { height: 60, paddingH: 28, fontSize: 18, radius: 18 },
-  xl: { height: 72, paddingH: 36, fontSize: 20, radius: 20 },
-};
-
-const DARK_TEXT = new Set<Variant>(['primary', 'success', 'warning']);
-
 export const AppButton = memo(({
-  title, onPress, variant = 'primary', size = 'md',
-  disabled = false, fullWidth = false, style, icon,
+  title, onPress, variant = 'primary',
+  size = 'md', fullWidth = false, disabled = false,
 }: Props) => {
+  const colors   = useColors();
   const { settings } = useAppSettings();
-  const { buttonStyle, primaryColor, globalRadius } = settings.ui;
-  const sz = SIZE_CONFIG[size];
+  const scale    = useRef(new Animated.Value(1)).current;
 
-  // Aplica o estilo de botão global para variante primária
-  const isGhost   = buttonStyle === 'outlined' && variant === 'primary';
-  const isFlat    = buttonStyle === 'flat'     && variant === 'primary';
-  const effectiveVariant = isGhost ? 'ghost' : variant;
+  function onIn()  { Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, speed: 60 }).start(); }
+  function onOut() { Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 60 }).start(); }
 
-  const bgMap: Record<Variant, string> = {
-    primary:   isFlat ? 'transparent' : primaryColor,
-    secondary: colors.surfaceLight,
-    danger:    colors.danger,
+  const PAD: Record<Size, { paddingVertical: number; paddingHorizontal: number; fontSize: number }> = {
+    sm: { paddingVertical: 10, paddingHorizontal: 18, fontSize: 13 },
+    md: { paddingVertical: 14, paddingHorizontal: 24, fontSize: 15 },
+    lg: { paddingVertical: 18, paddingHorizontal: 32, fontSize: 17 },
+    xl: { paddingVertical: 22, paddingHorizontal: 40, fontSize: 19 },
+  };
+
+  const BG: Record<Variant, string> = {
+    primary:   colors.primary,
+    secondary: colors.surface,
+    danger:    '#EF4444',
     ghost:     'transparent',
-    success:   colors.success,
-    warning:   colors.warning,
+    success:   '#22C55E',
+    warning:   '#F59E0B',
   };
 
-  const borderMap: Partial<Record<string, object>> = {
-    ghost:   { borderWidth: 2, borderColor: colors.border },
-    ...(isGhost ? { primary: { borderWidth: 2, borderColor: primaryColor } } : {}),
-    ...(isFlat  ? { primary: { borderBottomWidth: 2, borderColor: primaryColor } } : {}),
+  const BORDER: Record<Variant, string> = {
+    primary:   colors.primary,
+    secondary: colors.border,
+    danger:    '#EF4444',
+    ghost:     colors.border,
+    success:   '#22C55E',
+    warning:   '#F59E0B',
   };
 
-  const textColor = DARK_TEXT.has(variant) && !isGhost && !isFlat
-    ? colors.background
-    : colors.text;
+  // Texto escuro em fundos claros
+  const darkText = variant === 'primary' || variant === 'success' || variant === 'warning';
+  const TEXT_COLOR = darkText ? '#0A0A0A' : colors.text;
 
-  const radiusVal = Math.round(sz.radius * (globalRadius / 16));
+  const rad = settings.ui.globalRadius ?? 16;
+  const p   = PAD[size];
 
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={onIn}
+      onPressOut={onOut}
       disabled={disabled}
-      style={({ pressed }) => [
-        styles.base,
-        { backgroundColor: bgMap[effectiveVariant] },
-        borderMap[effectiveVariant],
-        {
-          minHeight:  sz.height,
-          paddingHorizontal: sz.paddingH,
-          borderRadius:      radiusVal,
-          alignSelf:         fullWidth ? 'stretch' : 'auto',
-          opacity:           disabled ? 0.4 : pressed ? 0.82 : 1,
-          transform:         [{ scale: pressed && !disabled ? 0.97 : 1 }],
-        },
-        style,
-      ]}
+      style={fullWidth ? { width: '100%' } : undefined}
     >
-      {icon}
-      <Text style={[styles.label, { fontSize: sz.fontSize, color: textColor }]}>
-        {title}
-      </Text>
+      <Animated.View style={[
+        styles.base,
+        {
+          backgroundColor: disabled ? colors.surface : BG[variant],
+          borderColor:      disabled ? colors.border  : BORDER[variant],
+          borderRadius:     rad,
+          paddingVertical:  p.paddingVertical,
+          paddingHorizontal: p.paddingHorizontal,
+          opacity:          disabled ? 0.5 : 1,
+          transform:        [{ scale }],
+        },
+      ]}>
+        <Text style={[styles.label, { fontSize: p.fontSize, color: disabled ? colors.textMuted : TEXT_COLOR }]}>
+          {title}
+        </Text>
+      </Animated.View>
     </Pressable>
   );
 });
@@ -91,11 +89,6 @@ export const AppButton = memo(({
 AppButton.displayName = 'AppButton';
 
 const styles = StyleSheet.create({
-  base: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            8,
-  },
-  label: { fontWeight: '700', letterSpacing: 0.2 },
+  base:  { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  label: { fontWeight: '800', textAlign: 'center' },
 });
