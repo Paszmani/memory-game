@@ -19,6 +19,7 @@ import { useToast }           from '@/components/ui/Toast';
 import { useAppSettings }     from '@/hooks/useAppSettings';
 import { useSaveState }       from '@/hooks/useSaveState';
 import { useThemeManager }    from '@/hooks/useThemeManager';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { colors }             from '@/constants/colors';
 import { AppSettings, DeepPartial } from '@/types/settings';
 import { CreateThemeInput, CustomTheme } from '@/types/theme';
@@ -83,23 +84,23 @@ export default function CustomizeScreen() {
     toast('Tema atualizado!', 'success');
   }
 
+  const { confirm } = useConfirm();
+
   function handleDeleteTheme(theme: CustomTheme) {
-    if (theme.isDefault) { Alert.alert('Tema padrão', 'Não pode ser removido.'); return; }
-    Alert.alert('Remover', `Remover "${theme.name}"?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Remover', style: 'destructive',
-        onPress: () => {
-          import('@/services/themeService').then(({ deleteCustomTheme }) =>
-            deleteCustomTheme(theme.id).then(() => {
-              loadThemes();
-              toast('Tema removido.', 'info');
-            })
-          );
-        },
-      },
-    ]);
-  }
+  if (theme.isDefault) { Alert.alert('Tema padrão', 'Não pode ser removido.'); return; }
+  confirm({
+    title: 'Remover tema', message: `Deseja remover "${theme.name}"?`,
+    confirmText: 'Remover', destructive: true,
+    onConfirm: () => {
+      import('@/services/themeService').then(({ deleteCustomTheme }) =>
+        deleteCustomTheme(theme.id).then(() => {
+          loadThemes();
+          toast('Tema removido.', 'info');
+        })
+      );
+    },
+  });
+}
 
   return (
     <ScreenContainer>

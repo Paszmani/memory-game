@@ -4,7 +4,7 @@
     "slug": "memory-game-totem",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/sb-logo-icon",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -14,8 +14,12 @@
     },
     "ios": { "supportsTablet": true, "bundleIdentifier": "com.memorygame.totem"},
     "android": {
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#0A0A0A" },
-      "edgeToEdgeEnabled": true, "package": "com.memorygame.totem"
+      "package": "com.gruposb.memorygame",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/sb-logo-adaptive-icon.png",
+        "backgroundColor": "#0A0A0A"
+      }
     },
     "web": {
       "bundler": "metro",

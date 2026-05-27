@@ -4,11 +4,22 @@ export type GradientDirection = 'vertical' | 'horizontal' | 'diagonal';
 export type CardFlipStyle     = 'horizontal' | 'vertical' | 'fade' | 'zoom';
 export type MatchAnimation    = 'bounce' | 'glow' | 'pulse' | 'none';
 export type WinAnimation      = 'confetti' | 'stars' | 'none';
-export type CardBackPattern   = 'solid' | 'dots' | 'grid' | 'emoji';
+export type CardBackPattern   = 'solid' | 'dots' | 'grid' | 'emoji' | 'image';
 export type BorderStyleType   = 'none' | 'subtle' | 'normal' | 'bold' | 'glow';
 export type UIFontSize        = 'small' | 'medium' | 'large' | 'xlarge';
 export type GridColumns       = 2 | 3 | 4 | 5 | 6;
 export type ButtonStyleType   = 'filled' | 'outlined' | 'flat';
+
+// ── Fontes disponíveis ────────────────────────────────────────────────────────
+export type FontFamilyOption =
+  | 'system'
+  | 'inter'
+  | 'poppins'
+  | 'nunito'
+  | 'roboto'
+  | 'montserrat'
+  | 'serif'
+  | 'mono';
 
 export interface BackgroundSettings {
   type:              BackgroundType;
@@ -26,6 +37,7 @@ export interface CardStyleSettings {
   backPattern:       CardBackPattern;
   backPatternEmoji:  string;
   backPatternColor:  string;
+  backImageUri?:     string;   // ← NOVO: imagem do verso
   frontColor:        string;
   borderColor:       string;
   borderStyleType:   BorderStyleType;
@@ -52,6 +64,7 @@ export interface UISettings {
   borderColor:      string;
   textColor:        string;
   fontSize:         UIFontSize;
+  fontFamily:       FontFamilyOption;   // ← NOVO
   buttonStyle:      ButtonStyleType;
   globalRadius:     number;
   useGlassmorphism: boolean;
@@ -63,7 +76,7 @@ export interface GameBehaviorSettings {
   showTimer:        boolean;
   showMoves:        boolean;
   gridColumns:      GridColumns;
-  pairCount:        number;   // número de pares (sem dificuldade)
+  pairCount:        number;
   showLabels:       boolean;
   hintAfterSeconds: number;
 }
@@ -72,6 +85,7 @@ export interface TotemSettings {
   attractScreenEnabled:        boolean;
   attractTimeoutSeconds:       number;
   attractMessage:              string;
+  attractImageUri?:            string;   // ← NOVO: imagem da tela de atração
   autoResetAfterFinishSeconds: number;
   kioskMode:                   boolean;
   showBranding:                boolean;

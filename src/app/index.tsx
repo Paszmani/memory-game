@@ -1,7 +1,7 @@
 import { router }  from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  Image, Pressable, ScrollView,
+  Animated, Image, Pressable, ScrollView,
   StyleSheet, Text, View, useWindowDimensions,
 } from 'react-native';
 
@@ -14,11 +14,40 @@ import { useAttractScreen }   from '@/hooks/useAttractScreen';
 import { useThemeManager }    from '@/hooks/useThemeManager';
 import { CustomTheme }        from '@/types/theme';
 
+// ── Botão de navegação com animação de press ─────────────────────────────────
+interface NavBtnProps {
+  icon:    string;
+  label:   string;
+  onPress: () => void;
+}
+
+function NavButton({ icon, label, onPress }: NavBtnProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  function onIn()  { Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start(); }
+  function onOut() { Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 50 }).start(); }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={onIn}
+      onPressOut={onOut}
+      style={styles.navBtnWrap}
+    >
+      <Animated.View style={[styles.navBtn, { transform: [{ scale }] }]}>
+        <Text style={styles.navIcon}>{icon}</Text>
+        <Text style={styles.navLabel}>{label}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// ── Tela principal ────────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { settings }       = useAppSettings();
-  const { themes }         = useThemeManager();
-  const { width, height }  = useWindowDimensions();
-  const [selectedThemeId, setSelectedThemeId] = useState<string | undefined>();
+  const { settings }      = useAppSettings();
+  const { themes }        = useThemeManager();
+  const { width, height } = useWindowDimensions();
+  const [selectedId, setSelectedId] = useState<string | undefined>();
 
   const { isActive, deactivate, resetTimer } = useAttractScreen({
     enabled:        settings.totem.attractScreenEnabled,
@@ -30,21 +59,19 @@ export default function HomeScreen() {
 
   function handlePlay() {
     resetTimer();
-    const theme = selectedThemeId ?? themes[0]?.id;
-    router.push({
-      pathname: '/game',
-      params: theme ? { themeId: theme } : undefined,
-    });
+    const themeId = selectedId ?? themes[0]?.id;
+    router.push(themeId ? `/game?themeId=${themeId}` : '/game');
   }
 
-  const { branding, background } = settings;
+  const { branding, background, totem } = settings;
 
   return (
     <GradientBackground settings={background} style={styles.root}>
       {isActive && (
         <AttractScreen
           gameTitle={branding.gameTitle}
-          message={settings.totem.attractMessage}
+          message={totem.attractMessage}
+          imageUri={totem.attractImageUri}
           onDismiss={deactivate}
         />
       )}
@@ -68,7 +95,7 @@ export default function HomeScreen() {
                 ? <Image source={{ uri: branding.logoUri }} style={styles.logo} />
                 : <Text style={styles.logoEmoji}>{branding.accentEmoji}</Text>
               }
-              <Text style={[styles.title, isWide && styles.titleWide]}>
+              <Text style={[styles.title, isWide && { fontSize: 52 }]}>
                 {branding.gameTitle}
               </Text>
               <Text style={styles.subtitle}>{branding.gameSubtitle}</Text>
@@ -81,47 +108,22 @@ export default function HomeScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.themeScroll}>
                   {themes.map((t) => (
-                    <ThemeChip
-                      key={t.id} theme={t}
-                      isSelected={(selectedThemeId ?? themes[0]?.id) === t.id}
-                      onSelect={() => setSelectedThemeId(t.id)}
-                    />
+                    <ThemeChip key={t.id} theme={t}
+                      isSelected={(selectedId ?? themes[0]?.id) === t.id}
+                      onSelect={() => setSelectedId(t.id)} />
                   ))}
                 </ScrollView>
               </View>
             )}
 
-            {/* Botão principal — opaco e bem visível */}
-            <AppButton
-              title="▶  JOGAR"
-              onPress={handlePlay}
-              size="xl"
-              fullWidth
-            />
+            {/* Botão JOGAR — sempre opaco e bem visível */}
+            <AppButton title="▶  JOGAR" onPress={handlePlay} size="xl" fullWidth />
 
-            {/* Navegação — sem emojis, texto limpo */}
+            {/* Navegação com mesma animação de press */}
             <View style={styles.navRow}>
-              <Pressable
-                onPress={() => router.push('/customize')}
-                style={styles.navBtn}
-              >
-                <Text style={styles.navBtnIcon}>✎</Text>
-                <Text style={styles.navBtnLabel}>Personalizar</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => router.push('/records')}
-                style={styles.navBtn}
-              >
-                <Text style={styles.navBtnIcon}>≡</Text>
-                <Text style={styles.navBtnLabel}>Histórico</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => router.push('/settings')}
-                style={styles.navBtn}
-              >
-                <Text style={styles.navBtnIcon}>⚙</Text>
-                <Text style={styles.navBtnLabel}>Config</Text>
-              </Pressable>
+              <NavButton icon="✎" label="Personalizar" onPress={() => router.push('/customize')} />
+              <NavButton icon="≡" label="Histórico"    onPress={() => router.push('/records')}  />
+              <NavButton icon="⚙" label="Config"       onPress={() => router.push('/settings')} />
             </View>
 
           </View>
@@ -137,35 +139,27 @@ function ThemeChip({ theme, isSelected, onSelect }: {
   return (
     <Pressable onPress={onSelect} style={[styles.chip, isSelected && styles.chipActive]}>
       <Text style={styles.chipEmoji}>{theme.cards[0]?.emoji ?? '🃏'}</Text>
-      <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>
-        {theme.name}
-      </Text>
+      <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>{theme.name}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  flex: { flex: 1 },
-  scroll: {
-    flexGrow: 1, justifyContent: 'center',
-    alignItems: 'center', paddingVertical: 60,
-  },
-  inner:     { gap: 28, alignSelf: 'center', width: '100%' },
-  hero:      { alignItems: 'center', gap: 14 },
-  logo:      { width: 90, height: 90, borderRadius: 22 },
+  root:    { flex: 1 },
+  flex:    { flex: 1 },
+  scroll:  { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
+  inner:   { gap: 28, alignSelf: 'center', width: '100%' },
+  hero:    { alignItems: 'center', gap: 14 },
+  logo:    { width: 90, height: 90, borderRadius: 22 },
   logoEmoji: { fontSize: 76 },
   title: {
-    color: colors.primary, fontSize: 44,
-    fontWeight: '900', textAlign: 'center', letterSpacing: -1,
+    color: colors.primary, fontSize: 44, fontWeight: '900',
+    textAlign: 'center', letterSpacing: -1,
   },
-  titleWide: { fontSize: 56 },
   subtitle:  { color: colors.textSecondary, fontSize: 17, textAlign: 'center' },
-
-  section:      { gap: 10 },
+  section:   { gap: 10 },
   sectionLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
   themeScroll:  { gap: 10, paddingVertical: 4 },
-
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: colors.surface, borderRadius: 50,
@@ -176,13 +170,13 @@ const styles = StyleSheet.create({
   chipEmoji:       { fontSize: 20 },
   chipLabel:       { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
   chipLabelActive: { color: colors.primary },
-
-  navRow: { flexDirection: 'row', gap: 10 },
+  navRow:     { flexDirection: 'row', gap: 10 },
+  navBtnWrap: { flex: 1 },
   navBtn: {
-    flex:            1, alignItems: 'center', gap: 6,
-    backgroundColor: colors.surface, borderRadius: 16,
-    paddingVertical: 14, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', gap: 8,
+    backgroundColor: colors.surface, borderRadius: 18,
+    paddingVertical: 16, borderWidth: 1.5, borderColor: colors.border,
   },
-  navBtnIcon:  { color: colors.primary, fontSize: 22 },
-  navBtnLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  navIcon:  { color: colors.primary, fontSize: 24 },
+  navLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
 });
