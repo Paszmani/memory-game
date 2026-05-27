@@ -20,17 +20,14 @@ interface Props {
 }
 
 const SHAPES: { key: CardShape; label: string }[] = [
-  { key: 'sharp',   label: '⬛ Quadrado' },
-  { key: 'soft',    label: '▪ Suave'    },
-  { key: 'rounded', label: '◻ Redondo'  },
-  { key: 'circle',  label: '⭕ Círculo'  },
+  { key: 'sharp',   label: 'Quadrado' },
+  { key: 'soft',    label: 'Suave'    },
+  { key: 'rounded', label: 'Redondo'  },
+  { key: 'circle',  label: 'Círculo'  },
 ];
 
 const BACK_PATTERNS: { key: CardBackPattern; label: string }[] = [
   { key: 'solid', label: 'Sólido' },
-  { key: 'dots',  label: 'Pontos' },
-  { key: 'grid',  label: 'Grade'  },
-  { key: 'emoji', label: 'Emoji'  },
   { key: 'image', label: 'Imagem' },
 ];
 

@@ -20,10 +20,10 @@ interface Props {
 }
 
 const FLIP_STYLES: { key: CardFlipStyle; label: string; icon: string }[] = [
-  { key: 'horizontal', label: 'Horizontal', icon: '↔️' },
-  { key: 'vertical',   label: 'Vertical',   icon: '↕️' },
-  { key: 'fade',       label: 'Fade',       icon: '🌫️' },
-  { key: 'zoom',       label: 'Zoom',       icon: '🔍' },
+  { key: 'horizontal', label: 'Horizontal', icon: '' },
+  { key: 'vertical',   label: 'Vertical',   icon: '' },
+  { key: 'fade',       label: 'Fade',       icon: '' },
+  { key: 'zoom',       label: 'Zoom',       icon: '' },
 ];
 
 const MATCH_ANIMS: { key: MatchAnimation; label: string }[] = [

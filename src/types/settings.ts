@@ -37,7 +37,7 @@ export interface CardStyleSettings {
   backPattern:       CardBackPattern;
   backPatternEmoji:  string;
   backPatternColor:  string;
-  backImageUri?:     string;   // ← NOVO: imagem do verso
+  backImageUri?:     string;   
   frontColor:        string;
   borderColor:       string;
   borderStyleType:   BorderStyleType;

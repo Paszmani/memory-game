@@ -2,7 +2,7 @@ import { AppSettings } from '@/types/settings';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   branding: {
-    gameTitle: 'Jogo da Memória', gameSubtitle: 'Encontre todos os pares!', accentEmoji: '🧠',
+    gameTitle: 'Jogo da Memória', gameSubtitle: 'GRUPO SB', accentEmoji: '🧠',
   },
   background: {
     type: 'gradient', solidColor: '#0A0A0A',

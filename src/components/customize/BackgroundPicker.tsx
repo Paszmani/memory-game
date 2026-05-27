@@ -99,12 +99,12 @@ export const BackgroundPicker = memo(({ value, onSave }: Props) => {
       {local.type === 'image' && (
         <>
           <ImagePickerButton
-            label={local.imageUri ? '🔄 Trocar imagem' : '📁 Selecionar imagem'}
+            label={local.imageUri ? 'Trocar imagem' : '📁 Selecionar imagem'}
             onImagePicked={(uri) => update({ imageUri: uri })}
           />
           {local.imageUri && (
             <>
-              <Text style={styles.imageFeedback}>✅ Imagem selecionada</Text>
+              <Text style={styles.imageFeedback}>Imagem selecionada</Text>
               <SliderInput
                 label="Opacidade da sobreposição"
                 value={local.overlayOpacity}

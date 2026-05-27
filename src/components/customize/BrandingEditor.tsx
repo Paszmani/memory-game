@@ -74,7 +74,7 @@ export const BrandingEditor = memo(({ value, onSave }: Props) => {
       <View style={styles.field}>
         <Text style={styles.label}>Logo personalizada (opcional)</Text>
         <ImagePickerButton
-          label={local.logoUri ? '🔄 Trocar logo' : '📁 Adicionar logo'}
+          label={local.logoUri ? 'Trocar logo' : '📁 Adicionar logo'}
           onImagePicked={(uri) => update({ logoUri: uri })}
         />
         {local.logoUri && <Text style={styles.success}>✅ Logo configurada</Text>}
