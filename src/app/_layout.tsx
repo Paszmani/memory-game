@@ -37,6 +37,7 @@ function hexToRgba(hex: string, a: number) {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+/** Aplica fonte E cor primária via CSS — funciona com React Native Web */
 function WebThemeApplier() {
   const { settings } = useSettings();
   const { fontFamily, primaryColor } = settings.ui;
@@ -45,6 +46,7 @@ function WebThemeApplier() {
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
 
+    // Carrega Google Font se necessário
     const fontUrl = GOOGLE_FONTS_URL[fontFamily];
     if (fontUrl) {
       const id = `gf-${fontFamily}`;
@@ -57,7 +59,8 @@ function WebThemeApplier() {
       }
     }
 
-
+    // Sobrescreve TODOS os elementos com !important
+    // React Native Web seta fontFamily como inline style; !important é obrigatório
     const cssFamily = FONT_CSS_FAMILY[fontFamily] ?? FONT_CSS_FAMILY.system;
 
     let styleEl = document.getElementById('rn-font-override') as HTMLStyleElement | null;

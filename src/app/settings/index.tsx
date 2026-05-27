@@ -113,6 +113,9 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
             Ícone da tela de atração
           </Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>
+            Substitui o emoji 👆 por uma imagem do dispositivo (use imagem quadrada).
+          </Text>
 
           {/* Preview da imagem atual */}
           {totem.attractCenterImageUri ? (
@@ -123,7 +126,7 @@ export default function SettingsScreen() {
                 contentFit="cover"
               />
               <Text style={[styles.previewLabel, { color: colors.textMuted }]}>
-                Prévia
+                Prévia (será exibida num círculo)
               </Text>
             </View>
           ) : (
@@ -141,7 +144,7 @@ export default function SettingsScreen() {
           />
           {totem.attractCenterImageUri && (
             <AppButton
-              title="✕ Remover"
+              title="✕ Remover — usar emoji padrão"
               onPress={() => updateTotem({ attractCenterImageUri: undefined })}
               variant="ghost"
               size="sm"

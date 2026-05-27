@@ -103,7 +103,7 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
       </View>
 
       {/* Tamanho de texto */}
-      {/* <Text style={styles.sub}>Tamanho de Texto</Text>
+      <Text style={styles.sub}>Tamanho de Texto</Text>
       <View style={styles.row}>
         {FONT_SIZES.map(({ key, label }) => (
           <Pressable key={key} onPress={() => update({ fontSize: key })}
@@ -111,7 +111,7 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
             <Text style={[styles.chipTxt, local.fontSize === key && { color: colors.primary }]}>{label}</Text>
           </Pressable>
         ))}
-      </View> */}
+      </View>
 
       {/* Estilo de botão */}
       <Text style={styles.sub}>Estilo de Botões</Text>

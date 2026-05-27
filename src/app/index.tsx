@@ -13,7 +13,7 @@ import { useAppSettings }     from '@/hooks/useAppSettings';
 import { useAttractScreen }   from '@/hooks/useAttractScreen';
 import { useThemeManager }    from '@/hooks/useThemeManager';
 import { CustomTheme }        from '@/types/theme';
-import { useColors } from '@/hooks/useColors';
+import { useColors }          from '@/hooks/useColors';
 
 // ── Botão de navegação com animação de press ─────────────────────────────────
 interface NavBtnProps {
@@ -56,6 +56,7 @@ export default function HomeScreen() {
 
   const isWide   = width >= 600;
   const innerMax = Math.min(width, 520);
+  const colors = useColors();
 
   function handlePlay() {
     resetTimer();
@@ -94,7 +95,7 @@ export default function HomeScreen() {
                 ? <Image source={{ uri: branding.logoUri }} style={styles.logo} />
                 : <Text style={styles.logoEmoji}>{branding.accentEmoji}</Text>
               }
-              <Text style={[styles.title, isWide && { fontSize: 52 }]}>
+              <Text style={[styles.title, { color: colors.primary }, isWide && { fontSize: 52 }]}>
                 {branding.gameTitle}
               </Text>
               <Text style={styles.subtitle}>{branding.gameSubtitle}</Text>
@@ -135,10 +136,17 @@ export default function HomeScreen() {
 function ThemeChip({ theme, isSelected, onSelect }: {
   theme: CustomTheme; isSelected: boolean; onSelect: () => void;
 }) {
+  const colors = useColors();
   return (
-    <Pressable onPress={onSelect} style={[styles.chip, isSelected && styles.chipActive]}>
+    <Pressable onPress={onSelect} style={[
+      styles.chip,
+      { borderColor: isSelected ? colors.primary : colors.border,
+        backgroundColor: isSelected ? colors.primaryGlow : colors.surface },
+    ]}>
       <Text style={styles.chipEmoji}>{theme.cards[0]?.emoji ?? '🃏'}</Text>
-      <Text style={[styles.chipLabel, isSelected && styles.chipLabelActive]}>{theme.name}</Text>
+      <Text style={[styles.chipLabel, { color: isSelected ? colors.primary : colors.textSecondary }]}>
+        {theme.name}
+      </Text>
     </Pressable>
   );
 }
