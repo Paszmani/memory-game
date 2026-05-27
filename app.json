@@ -24,7 +24,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/sb-logo-adaptive-icon.png",
       "name": "Jogo da Memória",
       "shortName": "Memória",
       "description": "Jogo da memória personalizável para totem e web",
