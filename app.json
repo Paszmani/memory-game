@@ -19,6 +19,7 @@
     "android": {
       "package": "com.gruposb.memorygame",
       "versionCode": 1,
+      "userInterfaceStyle": "dark",
       "adaptiveIcon": {
         "foregroundImage": "./assets/sb-logo-icon.png",
         "backgroundColor": "#0A0A0A"
@@ -40,6 +41,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-system-ui",
       [
         "expo-image-picker",
         {
