@@ -1,27 +1,54 @@
 import { useMemo } from 'react';
-import { useSettings } from '@/contexts/SettingsContext';
-import { colors as base } from '@/constants/colors';
 
-function hexToRgba(hex: string, a: number): string {
-  const c = hex.replace('#', '');
-  const r = parseInt(c.slice(0, 2), 16) || 0;
-  const g = parseInt(c.slice(2, 4), 16) || 0;
-  const b = parseInt(c.slice(4, 6), 16) || 0;
-  return `rgba(${r},${g},${b},${a})`;
+import { colors as base } from '@/constants/colors';
+import { useSettings } from '@/contexts/SettingsContext';
+import {
+  getContrastColor,
+  hexToRgba,
+  isValidHexColor,
+  lerpColor,
+} from '@/utils/colorUtils';
+
+function safeHex(value: string | undefined, fallback: string) {
+  return value && isValidHexColor(value) ? value : fallback;
+}
+
+export function makeDynamicColors(primaryInput?: string) {
+  const primary = safeHex(primaryInput, base.primary);
+
+  const primaryText = getContrastColor(primary);
+
+  return {
+    ...base,
+
+    primary,
+    primaryText,
+
+    primaryGlow: hexToRgba(primary, 0.15),
+    primaryMedium: hexToRgba(primary, 0.3),
+    primaryStrong: hexToRgba(primary, 0.6),
+
+    primarySurface: lerpColor(base.background, primary, 0.12),
+    primarySurfaceStrong: lerpColor(base.background, primary, 0.2),
+    primaryBorder: lerpColor(base.border, primary, 0.55),
+
+    selectedBackground: lerpColor(base.background, primary, 0.16),
+    selectedBorder: lerpColor(base.border, primary, 0.65),
+    selectedText: primary,
+
+    buttonPrimaryBg: primary,
+    buttonPrimaryBorder: lerpColor(primary, '#FFFFFF', 0.18),
+    buttonPrimaryText: primaryText,
+  };
 }
 
 export function useColors() {
   const { settings } = useSettings();
-  const primary = settings.ui.primaryColor ?? base.primary;
 
-  return useMemo(() => ({
-    ...base,
-    primary,
-    primaryGlow:   hexToRgba(primary, 0.15),
-    primaryMedium: hexToRgba(primary, 0.30),
-    primaryStrong: hexToRgba(primary, 0.60),
-  }), [primary]);
+  return useMemo(
+    () => makeDynamicColors(settings.ui.primaryColor),
+    [settings.ui.primaryColor],
+  );
 }
 
-// Versão estática para uso fora de componentes (StyleSheet.create, etc.)
 export { base as colors };

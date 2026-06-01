@@ -1,5 +1,6 @@
 export const STORAGE_KEYS = {
   customThemes: '@memory_game/custom_themes',
+  visualThemes: '@memory_game/visual_themes',
   gameResults:  '@memory_game/game_results',
   appSettings:  '@memory_game/app_settings',
 } as const;

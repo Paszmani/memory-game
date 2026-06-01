@@ -21,12 +21,14 @@ import { useThemeManager }   from '@/hooks/useThemeManager';
 import { saveGameResult }    from '@/services/scoreService';
 import { GameResult }        from '@/types/game';
 import { createId }          from '@/utils/id';
+import { useColors }         from '@/hooks/useColors';
 
 export default function GameScreen() {
   const params              = useLocalSearchParams();
   const { settings }        = useAppSettings();
   const { themes, isLoading } = useThemeManager();
   const { width, height }   = useWindowDimensions();
+  const dynamicColors       = useColors();
   const isLandscape         = width > height;
 
   const selectedThemeId = typeof params.themeId === 'string' ? params.themeId : undefined;
@@ -116,8 +118,19 @@ export default function GameScreen() {
 
           {/* ── Cabeçalho (compacto em landscape) ────────── */}
           <View style={[styles.topBar, isLandscape && styles.topBarLandscape]}>
-            <Pressable onPress={handleGoHome} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>‹ Início</Text>
+            <Pressable
+              onPress={handleGoHome}
+              style={[
+                styles.backBtn,
+                {
+                  backgroundColor: dynamicColors.primarySurface,
+                  borderColor: dynamicColors.primaryBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.backBtnText, { color: dynamicColors.primary }]}>
+                ‹ Início
+              </Text>
             </Pressable>
             <Text style={styles.themeName} numberOfLines={1}>{selectedTheme.name}</Text>
           </View>
@@ -202,9 +215,9 @@ const styles = StyleSheet.create({
 
   backBtn: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderWidth: 1, 
   },
-  backBtnText: { color: colors.primary, fontSize: 15, fontWeight: '700' },
+  backBtnText: { fontSize: 15, fontWeight: '700' },
   themeName:   { flex: 1, color: colors.text, fontSize: 16, fontWeight: '800' },
 
   headerRow: { paddingHorizontal: 16, paddingBottom: 6 },
