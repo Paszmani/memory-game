@@ -1,39 +1,45 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  ActivityIndicator, Pressable, SafeAreaView,
-  ScrollView, StyleSheet, Text, View,
+  ActivityIndicator,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
   useWindowDimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-import { AttractScreen }     from '@/components/game/AttractScreen';
+import { AttractScreen } from '@/components/game/AttractScreen';
 import { GameFinishedModal } from '@/components/game/GameFinishedModal';
-import { GameHeader }        from '@/components/game/GameHeader';
-import { MemoryBoard }       from '@/components/game/MemoryBoard';
+import { GameHeader } from '@/components/game/GameHeader';
+import { MemoryBoard } from '@/components/game/MemoryBoard';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { AppButton }         from '@/components/ui/AppButton';
-import { colors }            from '@/constants/colors';
-import { useAppSettings }    from '@/hooks/useAppSettings';
-import { useAttractScreen }  from '@/hooks/useAttractScreen';
-import { useMemoryGame }     from '@/hooks/useMemoryGame';
-import { useThemeManager }   from '@/hooks/useThemeManager';
-import { saveGameResult }    from '@/services/scoreService';
-import { GameResult }        from '@/types/game';
-import { createId }          from '@/utils/id';
-import { useColors }         from '@/hooks/useColors';
+import { AppButton } from '@/components/ui/AppButton';
+import { colors } from '@/constants/colors';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { useAttractScreen } from '@/hooks/useAttractScreen';
+import { useMemoryGame } from '@/hooks/useMemoryGame';
+import { useThemeManager } from '@/hooks/useThemeManager';
+import { saveGameResult } from '@/services/scoreService';
+import { GameResult } from '@/types/game';
+import { createId } from '@/utils/id';
 
 export default function GameScreen() {
-  const params              = useLocalSearchParams();
-  const { settings }        = useAppSettings();
+  const params = useLocalSearchParams();
+  const { settings } = useAppSettings();
   const { themes, isLoading } = useThemeManager();
-  const { width, height }   = useWindowDimensions();
-  const dynamicColors       = useColors();
-  const isLandscape         = width > height;
 
-  const selectedThemeId = typeof params.themeId === 'string' ? params.themeId : undefined;
-  const hasSavedRef     = useRef(false);
-  const autoResetRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+
+  const selectedThemeId =
+    typeof params.themeId === 'string' ? params.themeId : undefined;
+
+  const hasSavedRef = useRef(false);
+  const autoResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedTheme = useMemo(
     () => themes.find((t) => t.id === selectedThemeId) ?? themes[0],
@@ -41,33 +47,41 @@ export default function GameScreen() {
   );
 
   const { gameBehavior, cardStyle } = settings;
-  const pairCount = selectedTheme
-    ? Math.min(gameBehavior.pairCount, selectedTheme.cards.length)
-    : gameBehavior.pairCount;
+
+  // Sempre usa todas as cartas únicas do tema selecionado.
+  const pairCount = selectedTheme?.cards.length ?? 0;
+
+  const boardColumns = isLandscape
+    ? Math.min(gameBehavior.gridColumns + 2, 8)
+    : gameBehavior.gridColumns;
 
   const game = useMemoryGame({
-    themeCards:  selectedTheme?.cards ?? [],
+    themeCards: selectedTheme?.cards ?? [],
     pairCount,
     flipDelayMs: gameBehavior.flipDelayMs,
   });
 
   const { isActive, deactivate, resetTimer } = useAttractScreen({
-    enabled:        settings.totem.attractScreenEnabled,
+    enabled: settings.totem.attractScreenEnabled,
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
 
   useEffect(() => {
-    if (!game.isFinished || !selectedTheme || hasSavedRef.current) return;
+    if (!game.isFinished || !selectedTheme || hasSavedRef.current) {
+      return;
+    }
+
     hasSavedRef.current = true;
 
     const result: GameResult = {
-      id:            createId('result'),
-      themeId:       selectedTheme.id,
-      themeName:     selectedTheme.name,
-      moves:         game.moves,
+      id: createId('result'),
+      themeId: selectedTheme.id,
+      themeName: selectedTheme.name,
+      moves: game.moves,
       timeInSeconds: game.elapsedSeconds,
-      finishedAt:    new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
     };
+
     void saveGameResult(result);
 
     if (settings.totem.autoResetAfterFinishSeconds > 0) {
@@ -76,19 +90,37 @@ export default function GameScreen() {
         settings.totem.autoResetAfterFinishSeconds * 1000,
       );
     }
-  }, [game.isFinished, game.moves, game.elapsedSeconds, selectedTheme, settings.totem]);
+  }, [
+    game.isFinished,
+    game.moves,
+    game.elapsedSeconds,
+    selectedTheme,
+    settings.totem,
+  ]);
 
-  useEffect(() => () => { if (autoResetRef.current) clearTimeout(autoResetRef.current); }, []);
+  useEffect(() => {
+    return () => {
+      if (autoResetRef.current) {
+        clearTimeout(autoResetRef.current);
+      }
+    };
+  }, []);
 
   const handleRestart = useCallback(() => {
-    if (autoResetRef.current) clearTimeout(autoResetRef.current);
+    if (autoResetRef.current) {
+      clearTimeout(autoResetRef.current);
+    }
+
     hasSavedRef.current = false;
     resetTimer();
     game.restartGame();
   }, [game, resetTimer]);
 
   const handleGoHome = useCallback(() => {
-    if (autoResetRef.current) clearTimeout(autoResetRef.current);
+    if (autoResetRef.current) {
+      clearTimeout(autoResetRef.current);
+    }
+
     router.replace('/');
   }, []);
 
@@ -104,35 +136,26 @@ export default function GameScreen() {
   return (
     <GradientBackground settings={settings.background} style={styles.container}>
       <StatusBar style="light" />
+
       <SafeAreaView style={styles.safe}>
         <Pressable style={styles.flex} onPress={resetTimer}>
-
           {isActive && (
             <AttractScreen
               gameTitle={settings.branding.gameTitle}
               message={settings.totem.attractMessage}
-              centerImageUri={settings.totem.attractCenterImageUri}  // ← atualizado
+              centerImageUri={settings.totem.attractCenterImageUri}
               onDismiss={deactivate}
             />
           )}
 
-          {/* ── Cabeçalho (compacto em landscape) ────────── */}
           <View style={[styles.topBar, isLandscape && styles.topBarLandscape]}>
-            <Pressable
-              onPress={handleGoHome}
-              style={[
-                styles.backBtn,
-                {
-                  backgroundColor: dynamicColors.primarySurface,
-                  borderColor: dynamicColors.primaryBorder,
-                },
-              ]}
-            >
-              <Text style={[styles.backBtnText, { color: dynamicColors.primary }]}>
-                ‹ Início
-              </Text>
+            <Pressable onPress={handleGoHome} style={styles.backBtn}>
+              <Text style={styles.backBtnText}>‹ Início</Text>
             </Pressable>
-            <Text style={styles.themeName} numberOfLines={1}>{selectedTheme.name}</Text>
+
+            <Text style={styles.themeName} numberOfLines={1}>
+              {selectedTheme.name}
+            </Text>
           </View>
 
           {!isLandscape && (
@@ -145,7 +168,6 @@ export default function GameScreen() {
             </View>
           )}
 
-          {/* ── Board com scroll sempre disponível ────────── */}
           <ScrollView
             style={styles.flex}
             contentContainerStyle={[
@@ -165,27 +187,24 @@ export default function GameScreen() {
                 />
               </View>
             )}
+
             <MemoryBoard
               cards={game.cards}
-              columns={isLandscape
-                ? Math.min(gameBehavior.gridColumns + 2, 8)
-                : gameBehavior.gridColumns}
+              columns={boardColumns}
               cardStyle={cardStyle}
               onFlip={game.flipCard}
             />
           </ScrollView>
 
-          {/* ── Rodapé ────────────────────────────────────── */}
           <View style={[styles.footer, isLandscape && styles.footerLandscape]}>
             <AppButton
-              title="↺  Reiniciar"
+              title="↺ Reiniciar"
               onPress={handleRestart}
               variant="secondary"
               size={isLandscape ? 'sm' : 'md'}
               fullWidth
             />
           </View>
-
         </Pressable>
       </SafeAreaView>
 
@@ -201,36 +220,89 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1 },
-  safe:        { flex: 1 },
-  flex:        { flex: 1 },
-  center:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: colors.text, fontSize: 16 },
+  container: { flex: 1 },
+
+  safe: { flex: 1 },
+
+  flex: { flex: 1 },
+
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+
+  loadingText: {
+    color: colors.text,
+    fontSize: 16,
+  },
 
   topBar: {
-    flexDirection:  'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
-  topBarLandscape: { paddingTop: 6, paddingBottom: 4 },
+
+  topBarLandscape: {
+    paddingTop: 6,
+    paddingBottom: 4,
+  },
 
   backBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
-    borderWidth: 1, 
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  backBtnText: { fontSize: 15, fontWeight: '700' },
-  themeName:   { flex: 1, color: colors.text, fontSize: 16, fontWeight: '800' },
 
-  headerRow: { paddingHorizontal: 16, paddingBottom: 6 },
+  backBtnText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
 
-  boardScroll:          { paddingHorizontal: 16, paddingBottom: 8 },
-  boardScrollLandscape: { paddingHorizontal: 8,  paddingBottom: 4 },
+  themeName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '800',
+  },
 
-  landscapeStats: { paddingBottom: 6, paddingHorizontal: 8 },
+  headerRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 6,
+  },
+
+  boardScroll: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+
+  boardScrollLandscape: {
+    paddingHorizontal: 8,
+    paddingBottom: 4,
+  },
+
+  landscapeStats: {
+    paddingBottom: 6,
+    paddingHorizontal: 8,
+  },
 
   footer: {
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     backgroundColor: colors.surface,
   },
-  footerLandscape: { paddingVertical: 6 },
+
+  footerLandscape: {
+    paddingVertical: 6,
+  },
 });

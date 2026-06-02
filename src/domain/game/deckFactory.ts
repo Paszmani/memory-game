@@ -1,13 +1,16 @@
 import { MemoryCard } from '@/types/game';
 import { CustomThemeCard } from '@/types/theme';
 
-function createMemoryCard(source: CustomThemeCard, copy: 'a' | 'b'): MemoryCard {
+function createMemoryCard(
+  source: CustomThemeCard,
+  copy: 'a' | 'b',
+): MemoryCard {
   return {
-    id:        `${source.id}_${copy}`,
-    pairId:    source.id,
-    label:     source.label,
-    emoji:     source.emoji,
-    imageUri:  source.imageUri,
+    id: `${source.id}_${copy}`,
+    pairId: source.id,
+    label: source.label,
+    emoji: source.emoji,
+    imageUri: source.imageUri,
     isFlipped: false,
     isMatched: false,
   };
@@ -28,7 +31,13 @@ export function createDeck(
   themeCards: CustomThemeCard[],
   pairCount: number,
 ): MemoryCard[] {
-  const selected = themeCards.slice(0, pairCount);
+  // Mantém compatibilidade com a API atual, mas evita valores inválidos.
+  const safePairCount =
+    Number.isFinite(pairCount) && pairCount > 0
+      ? Math.floor(pairCount)
+      : themeCards.length;
+
+  const selected = themeCards.slice(0, Math.min(themeCards.length, safePairCount));
 
   const doubled = selected.flatMap((card) => [
     createMemoryCard(card, 'a'),

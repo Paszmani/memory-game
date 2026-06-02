@@ -1,87 +1,173 @@
 import { useEffect } from 'react';
-import { Platform }  from 'react-native';
-import { Stack }     from 'expo-router';
 
-import { SettingsProvider } from '@/contexts/SettingsContext';
-import { ThemesProvider }   from '@/contexts/ThemesContext';
-import { ToastProvider }    from '@/components/ui/Toast';
-import { ConfirmProvider }  from '@/components/ui/ConfirmDialog';
-import { useSettings }      from '@/contexts/SettingsContext';
-import { colors as base }   from '@/constants/colors';
+import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { Platform } from 'react-native';
 
-// ── Mapa de fontes para CSS (web) ─────────────────────────────────────────────
+import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_900Black,
+} from '@expo-google-fonts/inter';
+
+import {
+  Poppins_400Regular,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_900Black,
+} from '@expo-google-fonts/poppins';
+
+import {
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_900Black,
+} from '@expo-google-fonts/nunito';
+
+import {
+  Roboto_400Regular,
+  Roboto_500Medium,
+  Roboto_700Bold,
+  Roboto_900Black,
+} from '@expo-google-fonts/roboto';
+
+import {
+  Montserrat_400Regular,
+  Montserrat_600SemiBold,
+  Montserrat_700Bold,
+  Montserrat_900Black,
+} from '@expo-google-fonts/montserrat';
+
+import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
+import { ToastProvider } from '@/components/ui/Toast';
+import { colors as base } from '@/constants/colors';
+import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
+import { ThemesProvider } from '@/contexts/ThemesContext';
+
 const GOOGLE_FONTS_URL: Record<string, string> = {
-  inter:      'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap',
-  poppins:    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap',
-  nunito:     'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap',
-  roboto:     'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap',
-  montserrat: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap',
+  inter:
+    'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap',
+  poppins:
+    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap',
+  nunito:
+    'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&display=swap',
+  roboto:
+    'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap',
+  montserrat:
+    'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap',
 };
 
 const FONT_CSS_FAMILY: Record<string, string> = {
-  system:     'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-  inter:      '"Inter", system-ui, sans-serif',
-  poppins:    '"Poppins", system-ui, sans-serif',
-  nunito:     '"Nunito", system-ui, sans-serif',
-  roboto:     '"Roboto", system-ui, sans-serif',
+  system: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  inter: '"Inter", system-ui, sans-serif',
+  poppins: '"Poppins", system-ui, sans-serif',
+  nunito: '"Nunito", system-ui, sans-serif',
+  roboto: '"Roboto", system-ui, sans-serif',
   montserrat: '"Montserrat", system-ui, sans-serif',
-  serif:      'Georgia, "Times New Roman", serif',
-  mono:       '"Courier New", Courier, monospace',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: '"Courier New", Courier, monospace',
 };
 
-function hexToRgba(hex: string, a: number) {
-  const c = hex.replace('#', '');
-  const r = parseInt(c.slice(0, 2), 16) || 0;
-  const g = parseInt(c.slice(2, 4), 16) || 0;
-  const b = parseInt(c.slice(4, 6), 16) || 0;
-  return `rgba(${r},${g},${b},${a})`;
+function hexToRgba(hex: string, opacity: number) {
+  const cleanHex = hex.replace('#', '');
+
+  const r = parseInt(cleanHex.slice(0, 2), 16) || 0;
+  const g = parseInt(cleanHex.slice(2, 4), 16) || 0;
+  const b = parseInt(cleanHex.slice(4, 6), 16) || 0;
+
+  return `rgba(${r},${g},${b},${opacity})`;
 }
 
-/** Aplica fonte E cor primária via CSS — funciona com React Native Web */
+function FontLoader({ children }: { children: React.ReactNode }) {
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_900Black,
+
+    Poppins_400Regular,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_900Black,
+
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_900Black,
+
+    Roboto_400Regular,
+    Roboto_500Medium,
+    Roboto_700Bold,
+    Roboto_900Black,
+
+    Montserrat_400Regular,
+    Montserrat_600SemiBold,
+    Montserrat_700Bold,
+    Montserrat_900Black,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+
 function WebThemeApplier() {
   const { settings } = useSettings();
+
   const { fontFamily, primaryColor } = settings.ui;
 
-  // ── Fonte ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
 
-    // Carrega Google Font se necessário
     const fontUrl = GOOGLE_FONTS_URL[fontFamily];
+
     if (fontUrl) {
       const id = `gf-${fontFamily}`;
+
       if (!document.getElementById(id)) {
         const link = document.createElement('link');
-        link.id   = id;
-        link.rel  = 'stylesheet';
+
+        link.id = id;
+        link.rel = 'stylesheet';
         link.href = fontUrl;
+
         document.head.appendChild(link);
       }
     }
 
-    // Sobrescreve TODOS os elementos com !important
-    // React Native Web seta fontFamily como inline style; !important é obrigatório
     const cssFamily = FONT_CSS_FAMILY[fontFamily] ?? FONT_CSS_FAMILY.system;
 
-    let styleEl = document.getElementById('rn-font-override') as HTMLStyleElement | null;
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'rn-font-override';
-      document.head.appendChild(styleEl);
+    let styleElement = document.getElementById(
+      'rn-font-override',
+    ) as HTMLStyleElement | null;
+
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = 'rn-font-override';
+      document.head.appendChild(styleElement);
     }
-    styleEl.textContent = `
+
+    styleElement.textContent = `
       *, *::before, *::after {
         font-family: ${cssFamily} !important;
       }
     `;
   }, [fontFamily]);
 
-  // ── Cor primária ─────────────────────────────────────────────────
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
+
     const root = document.documentElement;
-    root.style.setProperty('--primary',       primaryColor);
-    root.style.setProperty('--primary-glow',  hexToRgba(primaryColor, 0.15));
+
+    root.style.setProperty('--primary', primaryColor);
+    root.style.setProperty('--primary-glow', hexToRgba(primaryColor, 0.15));
   }, [primaryColor]);
 
   return null;
@@ -89,82 +175,157 @@ function WebThemeApplier() {
 
 function useWebSetup() {
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
 
     const setMeta = (name: string, content: string) => {
-      let el = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`);
-      if (!el) {
-        el = document.createElement('meta');
-        el.setAttribute('name', name);
-        document.head.appendChild(el);
+      let element = document.querySelector(`meta[name="${name}"]`);
+
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('name', name);
+        document.head.appendChild(element);
       }
-      el.setAttribute('content', content);
+
+      element.setAttribute('content', content);
     };
 
-    setMeta('viewport',
-      'width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no');
-    setMeta('theme-color',                            base.background);
-    setMeta('mobile-web-app-capable',                'yes');
-    setMeta('apple-mobile-web-app-capable',          'yes');
+    setMeta(
+      'viewport',
+      'width=device-width,initial-scale=1,viewport-fit=cover',
+    );
+    setMeta('theme-color', base.background);
+    setMeta('mobile-web-app-capable', 'yes');
+    setMeta('apple-mobile-web-app-capable', 'yes');
     setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
-    setMeta('apple-mobile-web-app-title',             'Jogo da Memória');
+    setMeta('apple-mobile-web-app-title', 'Jogo da Memória');
 
-    let link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
-    link.href = './manifest.json';
+    let manifestLink = document.querySelector<HTMLLinkElement>(
+      'link[rel="manifest"]',
+    );
+
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
+    }
+
+    manifestLink.href = './manifest.json';
 
     const style = document.createElement('style');
+
     style.textContent = `
-      html, body {
-        overflow: hidden; overscroll-behavior: none;
-        background: ${base.background}; height: 100%;
+      html, body, #root {
+        min-height: 100%;
+        background: ${base.background};
+      }
+
+      body {
+        margin: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior-y: auto;
         -webkit-overflow-scrolling: touch;
       }
-      * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-      ::-webkit-scrollbar { display: none; }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
+      }
+
+      ::-webkit-scrollbar {
+        display: none;
+      }
     `;
+
     document.head.appendChild(style);
-
-    document.body.style.backgroundColor          = base.background;
+    document.body.style.backgroundColor = base.background;
     document.documentElement.style.backgroundColor = base.background;
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('./sw.js', { scope: './' })
-        .catch((e) => console.warn('[SW]', e));
-    }
   }, []);
+}
+
+function AppStack() {
+  const { settings } = useSettings();
+
+  const { primaryColor } = settings.ui;
+
+  return (
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: base.surface,
+        },
+        headerTintColor: primaryColor,
+        headerTitleStyle: {
+          color: base.text,
+          fontWeight: '800',
+        },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: base.background,
+        },
+      }}
+    >
+      <Stack.Screen
+        name="index"
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen
+        name="game/index"
+        options={{
+          headerShown: false,
+        }}
+      />
+
+      <Stack.Screen
+        name="customize/index"
+        options={{
+          title: 'Personalizar',
+          headerShown: true,
+          headerBackTitle: 'Início',
+        }}
+      />
+
+      <Stack.Screen
+        name="records/index"
+        options={{
+          title: 'Recordes',
+          headerShown: true,
+          headerBackTitle: 'Início',
+        }}
+      />
+
+      <Stack.Screen
+        name="settings/index"
+        options={{
+          title: 'Configurações',
+          headerShown: true,
+          headerBackTitle: 'Início',
+        }}
+      />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
   useWebSetup();
 
   return (
-    <SettingsProvider>
-      <ThemesProvider>
-        <ConfirmProvider>
+    <FontLoader>
+      <SettingsProvider>
+        <ThemesProvider>
           <ToastProvider>
-            <WebThemeApplier />
-            <Stack
-              screenOptions={{
-                headerStyle:                { backgroundColor: base.surface },
-                headerTintColor:            base.primary,
-                headerTitleStyle:           { fontWeight: '800', fontSize: 17, color: base.text },
-                headerBackVisible:          true,
-                headerBackButtonDisplayMode: 'minimal',
-                contentStyle:               { backgroundColor: base.background },
-                animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
-              }}
-            >
-              <Stack.Screen name="index"           options={{ headerShown: false }} />
-              <Stack.Screen name="game/index"      options={{ headerShown: false }} />
-              <Stack.Screen name="customize/index" options={{ title: 'Personalizar' }} />
-              <Stack.Screen name="records/index"   options={{ title: 'Histórico'     }} />
-              <Stack.Screen name="settings/index"  options={{ title: 'Configurações' }} />
-            </Stack>
+            <ConfirmProvider>
+              <WebThemeApplier />
+              <AppStack />
+            </ConfirmProvider>
           </ToastProvider>
-        </ConfirmProvider>
-      </ThemesProvider>
-    </SettingsProvider>
+        </ThemesProvider>
+      </SettingsProvider>
+    </FontLoader>
   );
 }

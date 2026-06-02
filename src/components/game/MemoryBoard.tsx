@@ -1,92 +1,192 @@
 import React, { memo, useMemo } from 'react';
+
 import {
-  FlatList, Platform, StyleSheet,
+  StyleSheet,
   useWindowDimensions,
+  View,
 } from 'react-native';
 
-import { MemoryCard }       from '@/components/game/MemoryCard';
-import { useAppSettings }   from '@/hooks/useAppSettings';
+import { MemoryCard } from '@/components/game/MemoryCard';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { CardStyleSettings } from '@/types/settings';
 import { MemoryCard as CardType } from '@/types/game';
 
 interface Props {
-  cards:     CardType[];
-  columns:   number;
+  cards: CardType[];
+  columns: number;
   cardStyle: CardStyleSettings;
-  onFlip:    (cardId: string) => void;
+  onFlip: (cardId: string) => void;
 }
 
-/** Espaço vertical ocupado por topBar + header + footer + safe areas */
-const CHROME_H_PORTRAIT  = 210;
-const CHROME_H_LANDSCAPE = 160;
+const MAX_BOARD_WIDTH = 960;
 
-const H_PADDING  = 32;
-const CARD_GAP   = 8;
-const MAX_CARD_P = 180;   // portrait max
-const MAX_CARD_L = 110;   // landscape max
-const MIN_CARD   = 48;
+const HORIZONTAL_PADDING_PORTRAIT = 32;
+const HORIZONTAL_PADDING_LANDSCAPE = 16;
 
-export const MemoryBoard = memo(({ cards, columns, cardStyle, onFlip }: Props) => {
-  const { settings }      = useAppSettings();
-  const { animation }     = settings;
-  const { width, height } = useWindowDimensions();
-  const isLandscape       = width > height;
+const CARD_MARGIN = 4;
+const CARD_OUTER_GAP = CARD_MARGIN * 2;
 
-  const cardSize = useMemo(() => {
-    const chromeH  = isLandscape ? CHROME_H_LANDSCAPE : CHROME_H_PORTRAIT;
-    const rows     = Math.ceil(cards.length / columns);
-    const avW      = width - H_PADDING - CARD_GAP * columns;
-    const avH      = height - chromeH - CARD_GAP * rows;
+const MIN_CARD_SIZE = 52;
+const MAX_CARD_PORTRAIT = 180;
+const MAX_CARD_LANDSCAPE = 110;
+const MAX_CARD_WEB = 148;
 
-    const byWidth  = Math.floor(avW / columns);
-    const byHeight = Math.floor(avH / rows);
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
 
-    const maxSize  = isLandscape ? MAX_CARD_L : MAX_CARD_P;
+function getHorizontalPadding(isLandscape: boolean) {
+  return isLandscape
+    ? HORIZONTAL_PADDING_LANDSCAPE
+    : HORIZONTAL_PADDING_PORTRAIT;
+}
 
-    // Em landscape: tenta encaixar sem scroll; em portrait: prioriza largura
-    const raw = isLandscape
-      ? Math.min(byWidth, byHeight, maxSize)
-      : Math.min(byWidth, maxSize);
+function getMaxCardSize(width: number, isLandscape: boolean) {
+  if (width >= 900) {
+    return MAX_CARD_WEB;
+  }
 
-    return Math.max(MIN_CARD, raw);
-  }, [width, height, columns, cards.length, isLandscape]);
+  return isLandscape ? MAX_CARD_LANDSCAPE : MAX_CARD_PORTRAIT;
+}
 
-  const animSettings = {
-    enabled:        animation.enabled,
-    flipStyle:      animation.flipStyle,
-    flipSpeedMs:    animation.flipSpeedMs,
-    matchAnimation: animation.matchAnimation,
-  };
+function normalizeColumns({
+  preferredColumns,
+  cardsCount,
+  availableWidth,
+}: {
+  preferredColumns: number;
+  cardsCount: number;
+  availableWidth: number;
+}) {
+  if (cardsCount <= 1) {
+    return cardsCount || 1;
+  }
 
-  return (
-    <FlatList
-      key={`board-${columns}-${cardSize}`}
-      data={cards}
-      numColumns={columns}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={[
-        styles.content,
-        // Centra horizontalmente as cartas
-        { paddingHorizontal: Math.max(0, (width - cardSize * columns - CARD_GAP * columns - 8) / 2) },
-      ]}
-      showsVerticalScrollIndicator={false}
-      scrollEnabled={false}
-      removeClippedSubviews={false}
-      renderItem={({ item }) => (
-        <MemoryCard
-          card={item}
-          size={cardSize}
-          cardStyle={cardStyle}
-          animSettings={animSettings}
-          onPress={() => onFlip(item.id)}
-        />
-      )}
-    />
+  const safePreferred = clamp(
+    Number.isFinite(preferredColumns) ? Math.floor(preferredColumns) : 4,
+    1,
+    8,
   );
-});
+
+  const maxByWidth = Math.max(
+    1,
+    Math.floor(availableWidth / (MIN_CARD_SIZE + CARD_OUTER_GAP)),
+  );
+
+  return clamp(
+    Math.min(safePreferred, maxByWidth, cardsCount),
+    1,
+    Math.max(1, cardsCount),
+  );
+}
+
+export const MemoryBoard = memo(
+  ({ cards, columns, cardStyle, onFlip }: Props) => {
+    const { settings } = useAppSettings();
+    const { animation } = settings;
+
+    const { width, height } = useWindowDimensions();
+    const isLandscape = width > height;
+
+    const boardMetrics = useMemo(() => {
+      const horizontalPadding = getHorizontalPadding(isLandscape);
+
+      const availableWidth = Math.max(
+        MIN_CARD_SIZE + CARD_OUTER_GAP,
+        Math.min(width - horizontalPadding, MAX_BOARD_WIDTH),
+      );
+
+      const effectiveColumns = normalizeColumns({
+        preferredColumns: columns,
+        cardsCount: cards.length,
+        availableWidth,
+      });
+
+      const maxCardSize = getMaxCardSize(width, isLandscape);
+
+      const rawCardSize = Math.floor(
+        availableWidth / effectiveColumns - CARD_OUTER_GAP,
+      );
+
+      const cardSize = clamp(rawCardSize, MIN_CARD_SIZE, maxCardSize);
+
+      const boardWidth = Math.min(
+        availableWidth,
+        effectiveColumns * (cardSize + CARD_OUTER_GAP),
+      );
+
+      return {
+        cardSize,
+        boardWidth,
+        effectiveColumns,
+      };
+    }, [cards.length, columns, isLandscape, width]);
+
+    const animSettings = useMemo(
+      () => ({
+        enabled: animation.enabled,
+        flipStyle: animation.flipStyle,
+        flipSpeedMs: animation.flipSpeedMs,
+        matchAnimation: animation.matchAnimation,
+      }),
+      [
+        animation.enabled,
+        animation.flipStyle,
+        animation.flipSpeedMs,
+        animation.matchAnimation,
+      ],
+    );
+
+    if (cards.length === 0) {
+      return <View style={styles.emptyContainer} />;
+    }
+
+    return (
+      <View style={styles.container}>
+        <View
+          style={[
+            styles.board,
+            {
+              width: boardMetrics.boardWidth,
+            },
+          ]}
+        >
+          {cards.map((card) => (
+            <MemoryCard
+              key={card.id}
+              card={card}
+              size={boardMetrics.cardSize}
+              cardStyle={cardStyle}
+              animSettings={animSettings}
+              onPress={() => onFlip(card.id)}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  },
+);
 
 MemoryBoard.displayName = 'MemoryBoard';
 
 const styles = StyleSheet.create({
-  content: { alignItems: 'center' },
+  container: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+
+  emptyContainer: {
+    width: '100%',
+    minHeight: 180,
+  },
+
+  board: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignContent: 'center',
+  },
 });
