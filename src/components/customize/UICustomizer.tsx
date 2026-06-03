@@ -13,21 +13,22 @@ import { SaveBar } from '@/components/ui/SaveBar';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { SliderInput } from '@/components/ui/SliderInput';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
-import { colors } from '@/constants/colors';
+import { useColors } from '@/hooks/useColors';
 import { useSaveState } from '@/hooks/useSaveState';
 import {
+  WEB_FONT_FAMILY,
+  getFontStyle as getPreviewFontStyle,
+  useTypography,
+} from '@/hooks/useTypography';
+import type {
   ButtonStyleType,
   FontFamilyOption,
   UISettings,
 } from '@/types/settings';
-import {
-  WEB_FONT_FAMILY,
-  getFontStyle as getPreviewFontStyle,
-} from '@/hooks/useTypography';
 
 interface Props {
   value: UISettings;
-  onSave: (v: UISettings) => Promise<void>;
+  onSave: (value: UISettings) => Promise<void>;
 }
 
 const FONT_OPTIONS: { key: FontFamilyOption; label: string; sample: string }[] =
@@ -55,36 +56,7 @@ const GOOGLE_FONTS_URL: Partial<Record<FontFamilyOption, string>> = {
     'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap',
 };
 
-const WEB_FONT_CSS: Record<FontFamilyOption, string> = {
-  system: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-  inter: '"Inter", system-ui, sans-serif',
-  poppins: '"Poppins", system-ui, sans-serif',
-  nunito: '"Nunito", system-ui, sans-serif',
-  roboto: '"Roboto", system-ui, sans-serif',
-  montserrat: '"Montserrat", system-ui, sans-serif',
-  serif: 'Georgia, "Times New Roman", serif',
-  mono: '"Courier New", Courier, monospace',
-};
-
-const NATIVE_FONT_FAMILY: Record<FontFamilyOption, string | undefined> = {
-  system: undefined,
-  inter: 'Inter_400Regular',
-  poppins: 'Poppins_400Regular',
-  nunito: 'Nunito_400Regular',
-  roboto: 'Roboto_400Regular',
-  montserrat: 'Montserrat_400Regular',
-  serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  mono: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-};
-
-/* const FONT_SIZES: { key: UIFontSize; label: string }[] = [
-  { key: 'small', label: 'P' },
-  { key: 'medium', label: 'M' },
-  { key: 'large', label: 'G' },
-  { key: 'xlarge', label: 'GG' },
-]; */
-
-const BTN_STYLES: { key: ButtonStyleType; label: string }[] = [
+const BUTTON_STYLES: { key: ButtonStyleType; label: string }[] = [
   { key: 'filled', label: 'Preenchido' },
   { key: 'outlined', label: 'Contorno' },
   { key: 'flat', label: 'Plano' },
@@ -107,14 +79,17 @@ function usePreviewFontsLoader() {
       if (!url) return;
 
       const id = `preview-font-${fontKey}`;
+
       if (document.getElementById(id)) {
         return;
       }
 
       const link = document.createElement('link');
+
       link.id = id;
       link.rel = 'stylesheet';
       link.href = url;
+
       document.head.appendChild(link);
     });
 
@@ -137,21 +112,15 @@ function usePreviewFontsLoader() {
   }, []);
 }
 
-
-function getPreviewFontFamily(font: FontFamilyOption) {
-  if (Platform.OS === 'web') {
-    return WEB_FONT_CSS[font];
-  }
-
-  return NATIVE_FONT_FAMILY[font];
-}
-
 function getPreviewStyle(font: FontFamilyOption) {
   return getPreviewFontStyle(font, 'regular');
 }
 
 export const UICustomizer = memo(({ value, onSave }: Props) => {
   usePreviewFontsLoader();
+
+  const colors = useColors();
+  const typography = useTypography();
 
   const { localValue: local, status, update, save, reset } = useSaveState(
     value,
@@ -160,7 +129,17 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
 
   return (
     <SectionCard title="Interface">
-      <Text style={styles.sub}>Cores da Interface</Text>
+      <Text
+        style={[
+          styles.sub,
+          typography.semiBold,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        Cores da Interface
+      </Text>
 
       <View style={styles.colorGrid}>
         {UI_COLORS.map(({ key, label }) => (
@@ -169,29 +148,61 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
               label={label}
               value={String(local[key])}
               onChange={(color) =>
-                update({ [key]: color } as Partial<UISettings>)
+                update({
+                  [key]: color,
+                } as Partial<UISettings>)
               }
             />
           </View>
         ))}
       </View>
 
-      <Text style={styles.sub}>Família de Fonte</Text>
+      <Text
+        style={[
+          styles.sub,
+          typography.semiBold,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        Família de Fonte
+      </Text>
 
       <View style={styles.fontGrid}>
         {FONT_OPTIONS.map(({ key, label, sample }) => {
-          const isActive = local.fontFamily === key;
-          const previewFontFamily = getPreviewFontFamily(key);
+          const active = local.fontFamily === key;
 
           return (
             <Pressable
               key={key}
-              onPress={() => update({ fontFamily: key })}
-              style={[styles.fontChip, isActive && styles.fontChipActive]}
+              onPress={() =>
+                update({
+                  fontFamily: key,
+                })
+              }
+              style={[
+                styles.fontChip,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  borderRadius: Math.max(12, local.globalRadius * 0.85),
+                },
+                active && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryGlow,
+                },
+              ]}
             >
               <Text
                 nativeID={`font-preview-${key}`}
-                style={[styles.fontSample, getPreviewStyle(key)]}
+                style={[
+                  styles.fontSample,
+                  getPreviewStyle(key),
+                  {
+                    color: active ? colors.primary : colors.textSecondary,
+                  },
+                ]}
               >
                 {sample}
               </Text>
@@ -199,7 +210,10 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
               <Text
                 style={[
                   styles.fontLabel,
-                  isActive && styles.fontLabelActive,
+                  typography.semiBold,
+                  {
+                    color: active ? colors.primary : colors.textMuted,
+                  },
                 ]}
               >
                 {label}
@@ -209,49 +223,57 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
         })}
       </View>
 
-      {/* <Text style={styles.sub}>Tamanho de Texto</Text> */}
-
-      {/* <View style={styles.row}>
-        {FONT_SIZES.map(({ key, label }) => (
-          <Pressable
-            key={key}
-            onPress={() => update({ fontSize: key })}
-            style={[styles.chip, local.fontSize === key && styles.chipActive]}
-          >
-            <Text
-              style={[
-                styles.chipTxt,
-                local.fontSize === key && styles.chipTxtActive,
-              ]}
-            >
-              {label}
-            </Text>
-          </Pressable>
-        ))}
-      </View> */}
-
-      <Text style={styles.sub}>Estilo de Botões</Text>
+      <Text
+        style={[
+          styles.sub,
+          typography.semiBold,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        Estilo de Botões
+      </Text>
 
       <View style={styles.row}>
-        {BTN_STYLES.map(({ key, label }) => (
-          <Pressable
-            key={key}
-            onPress={() => update({ buttonStyle: key })}
-            style={[
-              styles.chip,
-              local.buttonStyle === key && styles.chipActive,
-            ]}
-          >
-            <Text
+        {BUTTON_STYLES.map(({ key, label }) => {
+          const active = local.buttonStyle === key;
+
+          return (
+            <Pressable
+              key={key}
+              onPress={() =>
+                update({
+                  buttonStyle: key,
+                })
+              }
               style={[
-                styles.chipTxt,
-                local.buttonStyle === key && styles.chipTxtActive,
+                styles.chip,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                  borderRadius: Math.max(10, local.globalRadius * 0.75),
+                },
+                active && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryGlow,
+                },
               ]}
             >
-              {label}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={[
+                  styles.chipText,
+                  typography.bold,
+                  {
+                    color: active ? colors.primary : colors.textMuted,
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <SliderInput
@@ -260,13 +282,22 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
         min={0}
         max={32}
         step={1}
-        onChange={(globalRadius) => update({ globalRadius })}
+        onChange={(globalRadius) =>
+          update({
+            globalRadius,
+          })
+        }
       />
 
       <ToggleSwitch
         label="Usar efeito de vidro"
+        hint="Aplica transparência e bordas suaves nos painéis do app."
         value={local.useGlassmorphism}
-        onToggle={(useGlassmorphism) => update({ useGlassmorphism })}
+        onToggle={(useGlassmorphism) =>
+          update({
+            useGlassmorphism,
+          })
+        }
       />
 
       <SaveBar status={status} onSave={save} onReset={reset} />
@@ -278,9 +309,7 @@ UICustomizer.displayName = 'UICustomizer';
 
 const styles = StyleSheet.create({
   sub: {
-    color: colors.textSecondary,
     fontSize: 13,
-    fontWeight: '600',
     marginTop: 4,
   },
   colorGrid: {
@@ -300,29 +329,15 @@ const styles = StyleSheet.create({
     width: '23%',
     alignItems: 'center',
     paddingVertical: 12,
-    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
     gap: 4,
-  },
-  fontChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryGlow,
   },
   fontSample: {
     fontSize: 24,
-    fontWeight: '400',
-    color: colors.textSecondary,
     lineHeight: 30,
   },
   fontLabel: {
     fontSize: 10,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  fontLabelActive: {
-    color: colors.primary,
   },
   row: {
     flexDirection: 'row',
@@ -333,22 +348,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
     alignItems: 'center',
   },
-  chipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryGlow,
-  },
-  chipTxt: {
-    color: colors.textMuted,
+  chipText: {
     fontSize: 13,
-    fontWeight: '700',
-  },
-  chipTxtActive: {
-    color: colors.primary,
   },
 });

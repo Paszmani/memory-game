@@ -1,13 +1,15 @@
 import React, { memo } from 'react';
+
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { SaveBar }     from '@/components/ui/SaveBar';
+import { SaveBar } from '@/components/ui/SaveBar';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { SliderInput } from '@/components/ui/SliderInput';
-import { ToggleSwitch }from '@/components/ui/ToggleSwitch';
-import { colors }      from '@/constants/colors';
-import { useSaveState }from '@/hooks/useSaveState';
-import {
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
+import { useColors } from '@/hooks/useColors';
+import { useSaveState } from '@/hooks/useSaveState';
+import { useTypography } from '@/hooks/useTypography';
+import type {
   AnimationSettings,
   CardFlipStyle,
   MatchAnimation,
@@ -15,93 +17,105 @@ import {
 } from '@/types/settings';
 
 interface Props {
-  value:   AnimationSettings;
-  onSave:  (v: AnimationSettings) => Promise<void>;
+  value: AnimationSettings;
+  onSave: (value: AnimationSettings) => Promise<void>;
 }
 
 const FLIP_STYLES: { key: CardFlipStyle; label: string; icon: string }[] = [
-  { key: 'horizontal', label: 'Horizontal', icon: '' },
-  { key: 'vertical',   label: 'Vertical',   icon: '' },
-  { key: 'fade',       label: 'Fade',       icon: '' },
-  { key: 'zoom',       label: 'Zoom',       icon: '' },
+  { key: 'horizontal', label: 'Horizontal', icon: '↔' },
+  { key: 'vertical', label: 'Vertical', icon: '↕' },
+  { key: 'fade', label: 'Fade', icon: '◐' },
+  { key: 'zoom', label: 'Zoom', icon: '⊕' },
 ];
 
-const MATCH_ANIMS: { key: MatchAnimation; label: string }[] = [
+const MATCH_ANIMATIONS: { key: MatchAnimation; label: string }[] = [
   { key: 'bounce', label: 'Quicar' },
-  { key: 'glow',   label: 'Brilhar' },
-  { key: 'pulse',  label: 'Pulsar' },
-  { key: 'none',   label: 'Nenhum' },
+  { key: 'glow', label: 'Brilhar' },
+  { key: 'pulse', label: 'Pulsar' },
+  { key: 'none', label: 'Nenhum' },
 ];
 
-const WIN_ANIMS: { key: WinAnimation; label: string; icon: string }[] = [
-  { key: 'confetti', label: 'Confete',  icon: '🎊' },
-  { key: 'stars',    label: 'Estrelas', icon: '⭐' },
-  { key: 'none',     label: 'Nenhum',   icon: '⬜' },
+const WIN_ANIMATIONS: { key: WinAnimation; label: string; icon: string }[] = [
+  { key: 'confetti', label: 'Confete', icon: '🎉' },
+  { key: 'stars', label: 'Estrelas', icon: '⭐' },
+  { key: 'none', label: 'Nenhum', icon: '⬜' },
 ];
 
 export const AnimationPicker = memo(({ value, onSave }: Props) => {
-  const { localValue: local, status, update, save, reset } = useSaveState(value, onSave);
+  const { localValue: local, status, update, save, reset } = useSaveState(
+    value,
+    onSave,
+  );
 
   return (
-    <SectionCard title="🎬 Animações">
+    <SectionCard title="Animações">
       <ToggleSwitch
-        label="Animações habilitadas"
-        hint="Desative para melhor desempenho"
+        label="Ativar animações"
         value={local.enabled}
-        onToggle={(v) => update({ enabled: v })}
+        onToggle={(enabled) =>
+          update({
+            enabled,
+          })
+        }
       />
 
       {local.enabled && (
         <>
-          {/* Estilo de virar */}
-          <Text style={styles.subLabel}>Estilo de virada</Text>
-          <View style={styles.optionGrid}>
-            {FLIP_STYLES.map(({ key, label, icon }) => (
-              <OptionChip
-                key={key}
-                label={`${icon} ${label}`}
-                active={local.flipStyle === key}
-                onPress={() => update({ flipStyle: key })}
-              />
-            ))}
-          </View>
-
-          {/* Velocidade */}
-          <SliderInput
-            label="Velocidade da virada"
-            value={local.flipSpeedMs}
-            min={100}
-            max={700}
-            step={50}
-            unit="ms"
-            onChange={(v) => update({ flipSpeedMs: v })}
+          <OptionGroup
+            title="Estilo de virada"
+            options={FLIP_STYLES.map(({ key, label, icon }) => ({
+              key,
+              label: `${icon} ${label}`,
+            }))}
+            activeKey={local.flipStyle}
+            onSelect={(flipStyle) =>
+              update({
+                flipStyle: flipStyle as CardFlipStyle,
+              })
+            }
           />
 
-          {/* Animação ao acertar par */}
-          <Text style={styles.subLabel}>Ao encontrar par</Text>
-          <View style={styles.optionGrid}>
-            {MATCH_ANIMS.map(({ key, label }) => (
-              <OptionChip
-                key={key}
-                label={label}
-                active={local.matchAnimation === key}
-                onPress={() => update({ matchAnimation: key })}
-              />
-            ))}
-          </View>
+          <SliderInput
+            label="Velocidade da virada"
+            min={120}
+            max={800}
+            step={20}
+            unit="ms"
+            value={local.flipSpeedMs}
+            onChange={(flipSpeedMs) =>
+              update({
+                flipSpeedMs,
+              })
+            }
+          />
 
-          {/* Animação de vitória */}
-          <Text style={styles.subLabel}>Ao vencer</Text>
-          <View style={styles.optionGrid}>
-            {WIN_ANIMS.map(({ key, label, icon }) => (
-              <OptionChip
-                key={key}
-                label={`${icon} ${label}`}
-                active={local.winAnimation === key}
-                onPress={() => update({ winAnimation: key })}
-              />
-            ))}
-          </View>
+          <OptionGroup
+            title="Ao encontrar par"
+            options={MATCH_ANIMATIONS.map(({ key, label }) => ({
+              key,
+              label,
+            }))}
+            activeKey={local.matchAnimation}
+            onSelect={(matchAnimation) =>
+              update({
+                matchAnimation: matchAnimation as MatchAnimation,
+              })
+            }
+          />
+
+          <OptionGroup
+            title="Ao vencer"
+            options={WIN_ANIMATIONS.map(({ key, label, icon }) => ({
+              key,
+              label: `${icon} ${label}`,
+            }))}
+            activeKey={local.winAnimation}
+            onSelect={(winAnimation) =>
+              update({
+                winAnimation: winAnimation as WinAnimation,
+              })
+            }
+          />
         </>
       )}
 
@@ -112,29 +126,90 @@ export const AnimationPicker = memo(({ value, onSave }: Props) => {
 
 AnimationPicker.displayName = 'AnimationPicker';
 
-function OptionChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function OptionGroup({
+  title,
+  options,
+  activeKey,
+  onSelect,
+}: {
+  title: string;
+  options: { key: string; label: string }[];
+  activeKey: string;
+  onSelect: (key: string) => void;
+}) {
+  const colors = useColors();
+  const typography = useTypography();
+
   return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
-    </Pressable>
+    <>
+      <Text
+        style={[
+          styles.subLabel,
+          typography.semiBold,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      <View style={styles.optionGrid}>
+        {options.map(({ key, label }) => {
+          const active = activeKey === key;
+
+          return (
+            <Pressable
+              key={key}
+              onPress={() => onSelect(key)}
+              style={[
+                styles.chip,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+                active && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryGlow,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.chipLabel,
+                  typography.semiBold,
+                  {
+                    color: active ? colors.primary : colors.textMuted,
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  subLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 4 },
-  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  subLabel: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  optionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   chip: {
-    paddingVertical:   8,
+    paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius:      20,
-    borderWidth:       1.5,
-    borderColor:       colors.border,
-    backgroundColor:   colors.background,
+    borderRadius: 20,
+    borderWidth: 1.5,
   },
-  chipActive: {
-    borderColor:     colors.primary,
-    backgroundColor: colors.primaryGlow,
+  chipLabel: {
+    fontSize: 13,
   },
-  chipLabel:       { color: colors.textMuted,  fontSize: 13, fontWeight: '600' },
-  chipLabelActive: { color: colors.primary },
 });

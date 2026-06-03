@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
   Animated,
   Pressable,
@@ -6,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+
 import { Image } from 'expo-image';
 
 import { useColors } from '@/hooks/useColors';
@@ -18,149 +20,185 @@ interface Props {
   onDismiss: () => void;
 }
 
-export const AttractScreen = memo(({
-  message,
-  gameTitle,
-  centerImageUri,
-  onDismiss,
-}: Props) => {
-  const colors = useColors();
-  const typography = useTypography();
+export const AttractScreen = memo(
+  ({ message, gameTitle, centerImageUri, onDismiss }: Props) => {
+    const colors = useColors();
+    const typography = useTypography();
 
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [imageFailed, setImageFailed] = useState(false);
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const safeUri = useMemo(() => {
-    if (typeof centerImageUri !== 'string') {
-      return undefined;
-    }
+    const [imageFailed, setImageFailed] = useState(false);
 
-    const normalized = centerImageUri.trim();
-    return normalized.length > 0 ? normalized : undefined;
-  }, [centerImageUri]);
+    const safeUri = useMemo(() => {
+      if (typeof centerImageUri !== 'string') return undefined;
 
-  useEffect(() => {
-    setImageFailed(false);
-  }, [safeUri]);
+      const trimmed = centerImageUri.trim();
 
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+      return trimmed.length > 0 ? trimmed : undefined;
+    }, [centerImageUri]);
 
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+    useEffect(() => {
+      setImageFailed(false);
+    }, [safeUri]);
 
-    pulse.start();
-    return () => pulse.stop();
-  }, [fadeAnim, pulseAnim]);
+    useEffect(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
 
-  const showImage = !!safeUri && !imageFailed;
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ]),
+      );
 
-  return (
-    <Pressable
-      style={[styles.container, { backgroundColor: 'rgba(0,0,0,0.82)' }]}
-      onPress={onDismiss}
-    >
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-        <Text
+      pulse.start();
+
+      return () => pulse.stop();
+    }, [fadeAnim, pulseAnim]);
+
+    const showImage = !!safeUri && !imageFailed;
+
+    return (
+      <Pressable
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.overlay,
+          },
+        ]}
+        onPress={onDismiss}
+      >
+        <Animated.View
           style={[
-            styles.title,
-            typography.getFontStyle('black'),
-            { color: colors.primary },
+            styles.content,
+            {
+              opacity: fadeAnim,
+            },
           ]}
         >
-          {gameTitle}
-        </Text>
+          {!!gameTitle && (
+            <Text
+              style={[
+                styles.title,
+                typography.black,
+                {
+                  color: colors.primary,
+                },
+              ]}
+            >
+              {gameTitle}
+            </Text>
+          )}
 
-        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <View
+          <Animated.View
             style={[
-              styles.circle,
+              styles.circleWrapper,
               {
-                borderColor: colors.primary,
-                backgroundColor: colors.primaryGlow,
+                transform: [{ scale: pulseAnim }],
               },
             ]}
           >
-            {showImage ? (
-              <Image
-                source={safeUri}
-                style={styles.centerImage}
-                contentFit="cover"
-                transition={120}
-                cachePolicy="memory-disk"
-                onError={() => setImageFailed(true)}
-              />
-            ) : (
-              <Text
-                style={[
-                  styles.touchIcon,
-                  typography.getFontStyle('black'),
-                  { color: colors.primary },
-                ]}
-              >
-                ▶
-              </Text>
-            )}
-          </View>
-        </Animated.View>
+            <View
+              style={[
+                styles.circle,
+                {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryGlow,
+                },
+              ]}
+            >
+              {showImage ? (
+                <Image
+                  source={safeUri}
+                  style={styles.centerImage}
+                  contentFit="cover"
+                  transition={120}
+                  cachePolicy="memory-disk"
+                  onError={() => setImageFailed(true)}
+                />
+              ) : (
+                <Text
+                  style={[
+                    styles.touchIcon,
+                    typography.black,
+                    {
+                      color: colors.primary,
+                    },
+                  ]}
+                >
+                  ▶
+                </Text>
+              )}
+            </View>
+          </Animated.View>
 
-        <Text
-          style={[
-            styles.message,
-            typography.getFontStyle('semibold'),
-            { color: colors.textSecondary },
-          ]}
-        >
-          {message}
-        </Text>
-      </Animated.View>
-    </Pressable>
-  );
-});
+          <Text
+            style={[
+              styles.message,
+              typography.semiBold,
+              {
+                color: colors.textSecondary,
+              },
+            ]}
+          >
+            {message}
+          </Text>
+        </Animated.View>
+      </Pressable>
+    );
+  },
+);
 
 AttractScreen.displayName = 'AttractScreen';
 
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    zIndex: 50,
+    zIndex: 999,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   content: {
     alignItems: 'center',
-    gap: 20,
+    gap: 28,
   },
   title: {
-    fontSize: 34,
+    fontSize: 38,
     textAlign: 'center',
+    letterSpacing: -1,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    textShadowRadius: 8,
   },
-  circle: {
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    borderWidth: 2,
-    overflow: 'hidden',
+  circleWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  circle: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   centerImage: {
     width: '100%',
@@ -170,7 +208,13 @@ const styles = StyleSheet.create({
     fontSize: 48,
   },
   message: {
-    fontSize: 18,
+    fontSize: 20,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    textShadowRadius: 4,
   },
 });

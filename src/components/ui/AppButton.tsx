@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useRef } from 'react';
+
 import {
   Animated,
   Pressable,
@@ -27,174 +28,184 @@ interface Props {
   onPress: () => void;
   variant?: Variant;
   size?: Size;
-  disabled?: boolean;
   fullWidth?: boolean;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
 }
 
-export const AppButton = memo(({
-  title,
-  onPress,
-  variant = 'primary',
-  size = 'md',
-  disabled = false,
-  fullWidth = false,
-  style,
-  contentStyle,
-}: Props) => {
-  const scale = useRef(new Animated.Value(1)).current;
-  const colors = useColors();
-  const { settings } = useAppSettings();
-  const typography = useTypography();
+export const AppButton = memo(
+  ({
+    title,
+    onPress,
+    variant = 'primary',
+    size = 'md',
+    fullWidth = false,
+    disabled = false,
+    style,
+    contentStyle,
+  }: Props) => {
+    const colors = useColors();
+    const typography = useTypography();
+    const { settings } = useAppSettings();
 
-  const radius = Math.max(10, settings.ui.globalRadius ?? 16);
-  const uiButtonStyle = settings.ui.buttonStyle ?? 'filled';
-  const useGlass = settings.ui.useGlassmorphism;
+    const scale = useRef(new Animated.Value(1)).current;
 
-  function onIn() {
-    Animated.spring(scale, {
-      toValue: 0.97,
-      useNativeDriver: true,
-      speed: 60,
-    }).start();
-  }
+    const radius = Math.max(8, settings.ui.globalRadius ?? 16);
+    const buttonStyle = settings.ui.buttonStyle ?? 'filled';
+    const useGlass = settings.ui.useGlassmorphism;
 
-  function onOut() {
-    Animated.spring(scale, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 60,
-    }).start();
-  }
+    function onIn() {
+      if (disabled) return;
 
-  const padding = {
-    sm: { paddingVertical: 10, paddingHorizontal: 18, fontSize: 13 },
-    md: { paddingVertical: 14, paddingHorizontal: 24, fontSize: 15 },
-    lg: { paddingVertical: 18, paddingHorizontal: 32, fontSize: 17 },
-    xl: { paddingVertical: 22, paddingHorizontal: 40, fontSize: 19 },
-  }[size];
-
-  const tone = useMemo(() => {
-    switch (variant) {
-      case 'secondary':
-        return {
-          backgroundColor: useGlass ? colors.glass : colors.surfaceElevated,
-          borderColor: useGlass ? colors.glassBorder : colors.borderLight,
-          textColor: colors.text,
-        };
-      case 'danger':
-        return {
-          backgroundColor: colors.danger,
-          borderColor: colors.danger,
-          textColor: '#FFFFFF',
-        };
-      case 'ghost':
-        return {
-          backgroundColor: 'transparent',
-          borderColor: colors.border,
-          textColor: colors.text,
-        };
-      case 'success':
-        return {
-          backgroundColor: '#22C55E',
-          borderColor: '#22C55E',
-          textColor: '#08210F',
-        };
-      case 'warning':
-        return {
-          backgroundColor: colors.primarySurfaceStrong,
-          borderColor: colors.primaryBorder,
-          textColor: colors.primary,
-        };
-      case 'primary':
-      default:
-        return {
-          backgroundColor: colors.buttonPrimaryBg,
-          borderColor: colors.buttonPrimaryBorder,
-          textColor: colors.buttonPrimaryText,
-        };
-    }
-  }, [variant, useGlass, colors]);
-
-  const visual = useMemo(() => {
-    if (uiButtonStyle === 'outlined') {
-      return {
-        backgroundColor:
-          variant === 'ghost'
-            ? 'transparent'
-            : useGlass
-              ? colors.glass
-              : 'transparent',
-        borderColor: tone.borderColor,
-        textColor:
-          variant === 'primary' || variant === 'warning'
-            ? colors.primary
-            : tone.textColor,
-      };
+      Animated.spring(scale, {
+        toValue: 0.96,
+        useNativeDriver: true,
+        speed: 60,
+      }).start();
     }
 
-    if (uiButtonStyle === 'flat') {
-      return {
-        backgroundColor:
-          variant === 'primary'
-            ? colors.primaryGlow
-            : variant === 'secondary'
-              ? colors.primarySurface
-              : variant === 'ghost'
-                ? 'transparent'
-                : tone.backgroundColor,
-        borderColor: 'transparent',
-        textColor:
-          variant === 'primary' || variant === 'warning'
-            ? colors.primary
-            : tone.textColor,
-      };
+    function onOut() {
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 60,
+      }).start();
     }
 
-    return tone;
-  }, [uiButtonStyle, variant, useGlass, colors, tone]);
+    const padding = {
+      sm: { paddingVertical: 10, paddingHorizontal: 18, fontSize: 13 },
+      md: { paddingVertical: 14, paddingHorizontal: 24, fontSize: 15 },
+      lg: { paddingVertical: 18, paddingHorizontal: 32, fontSize: 17 },
+      xl: { paddingVertical: 22, paddingHorizontal: 40, fontSize: 19 },
+    }[size];
 
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={onIn}
-      onPressOut={onOut}
-      disabled={disabled}
-      style={[fullWidth && styles.fullWidth, style]}
-    >
-      <Animated.View
-        style={[
-          styles.base,
-          fullWidth && styles.fullWidth,
-          {
-            backgroundColor: disabled ? colors.surface : visual.backgroundColor,
-            borderColor: disabled ? colors.border : visual.borderColor,
-            borderRadius: radius,
-            paddingVertical: padding.paddingVertical,
-            paddingHorizontal: padding.paddingHorizontal,
-            opacity: disabled ? 0.5 : 1,
-            transform: [{ scale }],
-          },
-          contentStyle,
-        ]}
+    const tone = useMemo(() => {
+      switch (variant) {
+        case 'secondary':
+          return {
+            backgroundColor: useGlass ? colors.glass : colors.surfaceElevated,
+            borderColor: useGlass ? colors.glassBorder : colors.borderLight,
+            textColor: colors.text,
+          };
+
+        case 'danger':
+          return {
+            backgroundColor: colors.danger,
+            borderColor: colors.danger,
+            textColor: '#FFFFFF',
+          };
+
+        case 'ghost':
+          return {
+            backgroundColor: 'transparent',
+            borderColor: colors.border,
+            textColor: colors.text,
+          };
+
+        case 'success':
+          return {
+            backgroundColor: colors.success,
+            borderColor: colors.success,
+            textColor: colors.background,
+          };
+
+        case 'warning':
+          return {
+            backgroundColor: colors.primarySurfaceStrong,
+            borderColor: colors.primaryBorder,
+            textColor: colors.primary,
+          };
+
+        case 'primary':
+        default:
+          return {
+            backgroundColor: colors.buttonPrimaryBg,
+            borderColor: colors.buttonPrimaryBorder,
+            textColor: colors.buttonPrimaryText,
+          };
+      }
+    }, [colors, useGlass, variant]);
+
+    const visual = useMemo(() => {
+      if (buttonStyle === 'outlined') {
+        return {
+          backgroundColor:
+            variant === 'ghost'
+              ? 'transparent'
+              : useGlass
+                ? colors.glass
+                : 'transparent',
+          borderColor: tone.borderColor,
+          textColor:
+            variant === 'primary' || variant === 'warning'
+              ? colors.primary
+              : tone.textColor,
+        };
+      }
+
+      if (buttonStyle === 'flat') {
+        return {
+          backgroundColor:
+            variant === 'primary'
+              ? colors.primaryGlow
+              : variant === 'secondary'
+                ? colors.primarySurface
+                : variant === 'ghost'
+                  ? 'transparent'
+                  : tone.backgroundColor,
+          borderColor: 'transparent',
+          textColor:
+            variant === 'primary' || variant === 'warning'
+              ? colors.primary
+              : tone.textColor,
+        };
+      }
+
+      return tone;
+    }, [buttonStyle, colors, tone, useGlass, variant]);
+
+    return (
+      <Pressable
+        onPress={onPress}
+        onPressIn={onIn}
+        onPressOut={onOut}
+        disabled={disabled}
+        style={[fullWidth && styles.fullWidth, style]}
       >
-        <Text
+        <Animated.View
           style={[
-            styles.label,
-            typography.getFontStyle('bold'),
+            styles.base,
+            fullWidth && styles.fullWidth,
             {
-              color: disabled ? colors.textMuted : visual.textColor,
-              fontSize: padding.fontSize,
+              backgroundColor: disabled ? colors.surface : visual.backgroundColor,
+              borderColor: disabled ? colors.border : visual.borderColor,
+              borderRadius: radius,
+              paddingVertical: padding.paddingVertical,
+              paddingHorizontal: padding.paddingHorizontal,
+              opacity: disabled ? 0.5 : 1,
+              transform: [{ scale }],
             },
+            contentStyle,
           ]}
         >
-          {title}
-        </Text>
-      </Animated.View>
-    </Pressable>
-  );
-});
+          <Text
+            style={[
+              styles.label,
+              typography.bold,
+              {
+                color: disabled ? colors.textMuted : visual.textColor,
+                fontSize: padding.fontSize,
+              },
+            ]}
+          >
+            {title}
+          </Text>
+        </Animated.View>
+      </Pressable>
+    );
+  },
+);
 
 AppButton.displayName = 'AppButton';
 

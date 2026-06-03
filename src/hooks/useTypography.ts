@@ -4,7 +4,12 @@ import { Platform, TextStyle } from 'react-native';
 import { useSettings } from '@/contexts/SettingsContext';
 import type { FontFamilyOption } from '@/types/settings';
 
-export type AppFontWeight = 'regular' | 'medium' | 'semibold' | 'bold' | 'black';
+export type AppFontWeight =
+  | 'regular'
+  | 'medium'
+  | 'semibold'
+  | 'bold'
+  | 'black';
 
 export const WEB_FONT_FAMILY: Record<FontFamilyOption, string> = {
   system: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
@@ -55,43 +60,36 @@ const NATIVE_GOOGLE_FONTS = {
   },
 } as const;
 
-function getNativeGenericFamily(option: FontFamilyOption): string | undefined {
-  if (option === 'system') {
-    return undefined;
-  }
-
-  if (option === 'serif') {
-    return Platform.OS === 'ios' ? 'Georgia' : 'serif';
-  }
-
-  if (option === 'mono') {
-    return Platform.OS === 'ios' ? 'Courier New' : 'monospace';
-  }
+function getNativeGenericFamily(font: FontFamilyOption): string | undefined {
+  if (font === 'system') return undefined;
+  if (font === 'serif') return Platform.OS === 'ios' ? 'Georgia' : 'serif';
+  if (font === 'mono') return Platform.OS === 'ios' ? 'Courier New' : 'monospace';
 
   return undefined;
 }
 
 export function resolveFontFamily(
-  option: FontFamilyOption,
+  font: FontFamilyOption,
   weight: AppFontWeight = 'regular',
 ): string | undefined {
   if (Platform.OS === 'web') {
-    return WEB_FONT_FAMILY[option];
+    return WEB_FONT_FAMILY[font];
   }
 
-  if (option in NATIVE_GOOGLE_FONTS) {
-    const key = option as keyof typeof NATIVE_GOOGLE_FONTS;
+  if (font in NATIVE_GOOGLE_FONTS) {
+    const key = font as keyof typeof NATIVE_GOOGLE_FONTS;
     return NATIVE_GOOGLE_FONTS[key][weight] ?? NATIVE_GOOGLE_FONTS[key].regular;
   }
 
-  return getNativeGenericFamily(option);
+  return getNativeGenericFamily(font);
 }
 
 export function getFontStyle(
-  option: FontFamilyOption,
+  font: FontFamilyOption,
   weight: AppFontWeight = 'regular',
 ): TextStyle {
-  const fontFamily = resolveFontFamily(option, weight);
+  const fontFamily = resolveFontFamily(font, weight);
+
   return fontFamily ? { fontFamily } : {};
 }
 
@@ -102,15 +100,23 @@ export function useTypography() {
   return useMemo(
     () => ({
       currentFont,
-      webCssFamily: WEB_FONT_FAMILY[currentFont],
+
+      regular: getFontStyle(currentFont, 'regular'),
+      medium: getFontStyle(currentFont, 'medium'),
+      semiBold: getFontStyle(currentFont, 'semibold'),
+      semibold: getFontStyle(currentFont, 'semibold'),
+      bold: getFontStyle(currentFont, 'bold'),
+      black: getFontStyle(currentFont, 'black'),
+
       getFontFamily: (
-        option: FontFamilyOption = currentFont,
+        font: FontFamilyOption = currentFont,
         weight: AppFontWeight = 'regular',
-      ) => resolveFontFamily(option, weight),
+      ) => resolveFontFamily(font, weight),
+
       getFontStyle: (
         weight: AppFontWeight = 'regular',
-        option: FontFamilyOption = currentFont,
-      ) => getFontStyle(option, weight),
+        font: FontFamilyOption = currentFont,
+      ) => getFontStyle(font, weight),
     }),
     [currentFont],
   );

@@ -24,26 +24,34 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
   const primaryText = getContrastColor(primary);
 
   const surfaceElevated = lerpColor(surface, '#FFFFFF', 0.06);
-  const surfaceLight = lerpColor(surface, '#FFFFFF', 0.1);
+  const surfaceLight = lerpColor(surface, '#FFFFFF', 0.12);
 
-  const textSecondary = lerpColor(text, background, 0.32);
+  const textSecondary = lerpColor(text, background, 0.3);
   const textMuted = lerpColor(text, background, 0.55);
 
   const borderLight = lerpColor(border, '#FFFFFF', 0.16);
-  const primaryBorder = lerpColor(border, primary, 0.58);
+  const primaryBorder = lerpColor(border, primary, 0.6);
+
+  const primaryGlow = hexToRgba(primary, 0.18);
+  const primaryMedium = hexToRgba(primary, 0.32);
+  const primaryStrong = hexToRgba(primary, 0.62);
+
+  const primarySurface = lerpColor(surface, primary, 0.16);
+  const primarySurfaceStrong = lerpColor(surface, primary, 0.28);
 
   const selectedBackground = lerpColor(surface, primary, 0.22);
   const selectedBorder = lerpColor(border, primary, 0.7);
 
-  const glass = hexToRgba(surface, 0.72);
+  const glass = hexToRgba(surface, 0.74);
   const glassBorder = ui?.useGlassmorphism
-    ? hexToRgba(primary, 0.24)
+    ? hexToRgba(primary, 0.28)
     : lerpColor(border, primary, 0.18);
 
   return {
     ...base,
 
     background,
+
     surface,
     surfaceElevated,
     surfaceLight,
@@ -58,13 +66,12 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
     primary,
     primaryDark: lerpColor(primary, '#000000', 0.14),
     primaryText,
+    primaryGlow,
+    primaryMedium,
+    primaryStrong,
 
-    primaryGlow: hexToRgba(primary, 0.18),
-    primaryMedium: hexToRgba(primary, 0.3),
-    primaryStrong: hexToRgba(primary, 0.58),
-
-    primarySurface: lerpColor(surface, primary, 0.18),
-    primarySurfaceStrong: lerpColor(surface, primary, 0.3),
+    primarySurface,
+    primarySurfaceStrong,
     primaryBorder,
 
     selectedBackground,
@@ -76,6 +83,7 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
     buttonPrimaryText: primaryText,
 
     warning: primary,
+
     glass,
     glassBorder,
     overlay: hexToRgba(background, 0.9),
@@ -85,10 +93,7 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
 export function useColors() {
   const { settings } = useSettings();
 
-  return useMemo(
-    () => makeDynamicColors(settings.ui),
-    [settings.ui],
-  );
+  return useMemo(() => makeDynamicColors(settings.ui), [settings.ui]);
 }
 
 export { base as colors };

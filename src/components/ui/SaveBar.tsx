@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useRef } from 'react';
+
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -16,9 +17,10 @@ interface Props {
 
 export const SaveBar = memo(({ status, onSave, onReset }: Props) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
+
   const colors = useColors();
-  const { settings } = useAppSettings();
   const typography = useTypography();
+  const { settings } = useAppSettings();
 
   const isVisible = status !== 'idle';
   const radius = Math.max(12, settings.ui.globalRadius ?? 16);
@@ -35,14 +37,38 @@ export const SaveBar = memo(({ status, onSave, onReset }: Props) => {
 
   const statusMap = useMemo(
     () => ({
-      dirty: { label: 'Alterações pendentes', color: colors.primary, icon: '●' },
-      saving: { label: 'Salvando...', color: colors.textSecondary, icon: '…' },
-      saved: { label: 'Salvo com sucesso', color: colors.primary, icon: '✓' },
-      error: { label: 'Erro ao salvar', color: colors.danger, icon: '✗' },
-      idle: { label: '', color: colors.textMuted, icon: '' },
+      idle: {
+        label: '',
+        color: colors.textMuted,
+        icon: '',
+      },
+      dirty: {
+        label: 'Alterações não salvas',
+        color: colors.primary,
+        icon: '●',
+      },
+      saving: {
+        label: 'Salvando...',
+        color: colors.textSecondary,
+        icon: '⟳',
+      },
+      saved: {
+        label: 'Salvo com sucesso!',
+        color: colors.primary,
+        icon: '✓',
+      },
+      error: {
+        label: 'Erro ao salvar',
+        color: colors.danger,
+        icon: '✗',
+      },
     }),
     [colors],
   );
+
+  if (status === 'idle') {
+    return null;
+  }
 
   const cfg = statusMap[status];
 
@@ -55,25 +81,37 @@ export const SaveBar = memo(({ status, onSave, onReset }: Props) => {
           borderRadius: radius,
           backgroundColor: useGlass ? colors.glass : colors.surface,
           opacity: slideAnim,
-          transform: [{
-            translateY: slideAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [20, 0],
-            }),
-          }],
+          transform: [
+            {
+              translateY: slideAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [20, 0],
+              }),
+            },
+          ],
         },
       ]}
     >
       <View style={styles.left}>
-        <Text style={[styles.icon, typography.getFontStyle('bold'), { color: cfg.color }]}>
+        <Text
+          style={[
+            styles.icon,
+            typography.bold,
+            {
+              color: cfg.color,
+            },
+          ]}
+        >
           {cfg.icon}
         </Text>
 
         <Text
           style={[
             styles.statusText,
-            typography.getFontStyle('semibold'),
-            { color: cfg.color },
+            typography.semiBold,
+            {
+              color: cfg.color,
+            },
           ]}
         >
           {cfg.label}
@@ -82,11 +120,16 @@ export const SaveBar = memo(({ status, onSave, onReset }: Props) => {
 
       <View style={styles.right}>
         {onReset && status === 'dirty' && (
-          <AppButton title="Descartar" onPress={onReset} variant="ghost" size="sm" />
+          <AppButton
+            title="Descartar"
+            variant="ghost"
+            size="sm"
+            onPress={onReset}
+          />
         )}
 
         {(status === 'dirty' || status === 'error') && (
-          <AppButton title="Salvar" onPress={onSave} size="sm" variant="primary" />
+          <AppButton title="Salvar" size="sm" onPress={onSave} />
         )}
       </View>
     </Animated.View>

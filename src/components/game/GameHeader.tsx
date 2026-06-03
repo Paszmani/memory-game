@@ -1,4 +1,5 @@
 import React, { memo } from 'react';
+
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -24,13 +25,14 @@ const StatBox = memo(({ label, value }: StatBoxProps) => {
   const { settings } = useAppSettings();
 
   const radius = Math.max(12, settings.ui.globalRadius ?? 16);
+  const useGlass = settings.ui.useGlassmorphism;
 
   return (
     <View
       style={[
         styles.box,
         {
-          backgroundColor: settings.ui.useGlassmorphism ? colors.glass : colors.surface,
+          backgroundColor: useGlass ? colors.glass : colors.surface,
           borderColor: colors.primaryBorder,
           borderRadius: radius,
         },
@@ -39,8 +41,10 @@ const StatBox = memo(({ label, value }: StatBoxProps) => {
       <Text
         style={[
           styles.boxLabel,
-          typography.getFontStyle('semibold'),
-          { color: colors.textMuted },
+          typography.semiBold,
+          {
+            color: colors.textMuted,
+          },
         ]}
       >
         {label}
@@ -49,8 +53,10 @@ const StatBox = memo(({ label, value }: StatBoxProps) => {
       <Text
         style={[
           styles.boxValue,
-          typography.getFontStyle('black'),
-          { color: colors.primary },
+          typography.black,
+          {
+            color: colors.primary,
+          },
         ]}
       >
         {value}
@@ -66,6 +72,7 @@ export const GameHeader = memo(({ moves, elapsedSeconds, settings }: Props) => {
     settings.showTimer && (
       <StatBox key="timer" label="Tempo" value={formatSeconds(elapsedSeconds)} />
     ),
+
     settings.showMoves && (
       <StatBox key="moves" label="Jogadas" value={String(moves)} />
     ),

@@ -1,5 +1,12 @@
 import React, { memo } from 'react';
-import { StyleSheet, Text, View, ViewStyle } from 'react-native';
+
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from 'react-native';
 
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useColors } from '@/hooks/useColors';
@@ -8,13 +15,13 @@ import { useTypography } from '@/hooks/useTypography';
 interface Props {
   title?: string;
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const SectionCard = memo(({ title, children, style }: Props) => {
   const colors = useColors();
-  const { settings } = useAppSettings();
   const typography = useTypography();
+  const { settings } = useAppSettings();
 
   const radius = Math.max(12, settings.ui.globalRadius ?? 16);
   const useGlass = settings.ui.useGlassmorphism;
@@ -31,17 +38,19 @@ export const SectionCard = memo(({ title, children, style }: Props) => {
         style,
       ]}
     >
-      {title ? (
+      {!!title && (
         <Text
           style={[
             styles.title,
-            typography.getFontStyle('bold'),
-            { color: colors.text },
+            typography.bold,
+            {
+              color: colors.text,
+            },
           ]}
         >
           {title}
         </Text>
-      ) : null}
+      )}
 
       {children}
     </View>

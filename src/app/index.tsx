@@ -1,151 +1,307 @@
-import { router }  from 'expo-router';
+import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
+
 import {
-  Animated, Image, Pressable, ScrollView,
-  StyleSheet, Text, View, useWindowDimensions,
+  Animated,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
 } from 'react-native';
 
-import { AttractScreen }      from '@/components/game/AttractScreen';
+import { AttractScreen } from '@/components/game/AttractScreen';
+import { AppButton } from '@/components/ui/AppButton';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { AppButton }          from '@/components/ui/AppButton';
-import { colors }             from '@/constants/colors';
-import { useAppSettings }     from '@/hooks/useAppSettings';
-import { useAttractScreen }   from '@/hooks/useAttractScreen';
-import { useThemeManager }    from '@/hooks/useThemeManager';
-import { CustomTheme }        from '@/types/theme';
-import { useColors }          from '@/hooks/useColors';
+import { useAppSettings } from '@/hooks/useAppSettings';
+import { useAttractScreen } from '@/hooks/useAttractScreen';
+import { useColors } from '@/hooks/useColors';
+import { useThemeManager } from '@/hooks/useThemeManager';
+import { useTypography } from '@/hooks/useTypography';
+import type { CustomTheme } from '@/types/theme';
 
-// ── Botão de navegação com animação de press ─────────────────────────────────
-interface NavBtnProps {
-  icon:    string;
-  label:   string;
+interface NavButtonProps {
+  icon: string;
+  label: string;
   onPress: () => void;
 }
 
-function NavButton({ icon, label, onPress }: NavBtnProps) {
+function NavButton({ icon, label, onPress }: NavButtonProps) {
   const scale = useRef(new Animated.Value(1)).current;
-  const colors = useColors();
 
-  function onIn()  { Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start(); }
-  function onOut() { Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 50 }).start(); }
+  const colors = useColors();
+  const typography = useTypography();
+
+  function onIn() {
+    Animated.spring(scale, {
+      toValue: 0.92,
+      useNativeDriver: true,
+      speed: 50,
+    }).start();
+  }
+
+  function onOut() {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+    }).start();
+  }
 
   return (
-    <Pressable onPress={onPress} onPressIn={onIn} onPressOut={onOut} style={styles.navBtnWrap}>
-      <Animated.View style={[
-        styles.navBtn,
-        { transform: [{ scale }], borderColor: colors.border, backgroundColor: colors.surface },
-      ]}>
-        <Text style={[styles.navIcon,  { color: colors.primary }]}>{icon}</Text>
-        <Text style={[styles.navLabel, { color: colors.textSecondary }]}>{label}</Text>
-      </Animated.View>
-    </Pressable>
+    <Animated.View
+      style={[
+        styles.navButtonWrap,
+        {
+          transform: [{ scale }],
+        },
+      ]}
+    >
+      <Pressable
+        onPress={onPress}
+        onPressIn={onIn}
+        onPressOut={onOut}
+        style={[
+          styles.navButton,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.navIcon,
+            {
+              color: colors.primary,
+            },
+          ]}
+        >
+          {icon}
+        </Text>
+
+        <Text
+          style={[
+            styles.navLabel,
+            typography.bold,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-// ── Tela principal ────────────────────────────────────────────────────────────
 export default function HomeScreen() {
-  const { settings }      = useAppSettings();
-  const { themes }        = useThemeManager();
+  const { settings } = useAppSettings();
+  const { themes } = useThemeManager();
   const { width, height } = useWindowDimensions();
+
+  const colors = useColors();
+  const typography = useTypography();
+
   const [selectedId, setSelectedId] = useState<string | undefined>();
 
   const { isActive, deactivate, resetTimer } = useAttractScreen({
-    enabled:        settings.totem.attractScreenEnabled,
+    enabled: settings.totem.attractScreenEnabled,
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
 
-  const isWide   = width >= 600;
+  const isWide = width >= 600;
   const innerMax = Math.min(width, 520);
-  const colors = useColors();
 
   function handlePlay() {
     resetTimer();
+
     const themeId = selectedId ?? themes[0]?.id;
-    router.push(themeId ? `/game?themeId=${themeId}` : '/game');
+
+    router.push(
+      themeId
+        ? {
+            pathname: '/game',
+            params: {
+              themeId,
+            },
+          }
+        : '/game',
+    );
   }
 
   const { branding, background, totem } = settings;
 
   return (
-    <GradientBackground settings={background} style={styles.root}>
+    <GradientBackground settings={background}>
       {isActive && (
         <AttractScreen
-          gameTitle={branding.gameTitle}
           message={totem.attractMessage}
+          gameTitle={totem.showBranding ? branding.gameTitle : ''}
           centerImageUri={totem.attractCenterImageUri}
           onDismiss={deactivate}
         />
       )}
 
-      <Pressable style={styles.flex} onPress={resetTimer}>
+      <View style={styles.flex}>
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { minHeight: height, paddingHorizontal: isWide ? 48 : 24 },
+            {
+              minHeight: height,
+              paddingHorizontal: isWide ? 48 : 24,
+            },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bounces={false}
-          overScrollMode="never"
+          bounces
+          overScrollMode="always"
         >
-          <View style={[styles.inner, { width: isWide ? innerMax : '100%' }]}>
-
-            {/* Hero */}
+          <View style={[styles.inner, { maxWidth: innerMax }]}>
             <View style={styles.hero}>
-              {branding.logoUri
-                ? <Image source={{ uri: branding.logoUri }} style={styles.logo} />
-                : <Text style={styles.logoEmoji}>{branding.accentEmoji}</Text>
-              }
-              <Text style={[styles.title, { color: colors.primary }, isWide && { fontSize: 52 }]}>
+              {branding.logoUri ? (
+                <Image source={{ uri: branding.logoUri }} style={styles.logo} />
+              ) : (
+                <Text style={styles.logoEmoji}>{branding.accentEmoji}</Text>
+              )}
+
+              <Text
+                style={[
+                  styles.title,
+                  typography.black,
+                  {
+                    color: colors.primary,
+                  },
+                ]}
+              >
                 {branding.gameTitle}
               </Text>
-              <Text style={styles.subtitle}>{branding.gameSubtitle}</Text>
+
+              <Text
+                style={[
+                  styles.subtitle,
+                  typography.regular,
+                  {
+                    color: colors.textSecondary,
+                  },
+                ]}
+              >
+                {branding.gameSubtitle}
+              </Text>
             </View>
 
-            {/* Seletor de tema */}
             {themes.length > 1 && (
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>TEMA</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.themeScroll}>
-                  {themes.map((t) => (
-                    <ThemeChip key={t.id} theme={t}
-                      isSelected={(selectedId ?? themes[0]?.id) === t.id}
-                      onSelect={() => setSelectedId(t.id)} />
+                <Text
+                  style={[
+                    styles.sectionLabel,
+                    typography.bold,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
+                  TEMA
+                </Text>
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.themeScroll}
+                >
+                  {themes.map((theme) => (
+                    <ThemeChip
+                      key={theme.id}
+                      theme={theme}
+                      isSelected={(selectedId ?? themes[0]?.id) === theme.id}
+                      onSelect={() => {
+                        resetTimer();
+                        setSelectedId(theme.id);
+                      }}
+                    />
                   ))}
                 </ScrollView>
               </View>
             )}
 
-            {/* Botão JOGAR — sempre opaco e bem visível */}
-            <AppButton title="▶  JOGAR" onPress={handlePlay} size="xl" fullWidth />
+            <AppButton title="▶ JOGAR" size="xl" fullWidth onPress={handlePlay} />
 
-            {/* Navegação com mesma animação de press */}
             <View style={styles.navRow}>
-              <NavButton icon="✎" label="Personalizar" onPress={() => router.push('/customize')} />
-              <NavButton icon="≡" label="Histórico"    onPress={() => router.push('/records')}  />
-              <NavButton icon="⚙" label="Config"       onPress={() => router.push('/settings')} />
-            </View>
+              <NavButton
+                icon="🎨"
+                label="Personalizar"
+                onPress={() => {
+                  resetTimer();
+                  router.push('/customize');
+                }}
+              />
 
+              <NavButton
+                icon="🏆"
+                label="Recordes"
+                onPress={() => {
+                  resetTimer();
+                  router.push('/records');
+                }}
+              />
+
+              <NavButton
+                icon="⚙️"
+                label="Config"
+                onPress={() => {
+                  resetTimer();
+                  router.push('/settings');
+                }}
+              />
+            </View>
           </View>
         </ScrollView>
-      </Pressable>
+      </View>
     </GradientBackground>
   );
 }
 
-function ThemeChip({ theme, isSelected, onSelect }: {
-  theme: CustomTheme; isSelected: boolean; onSelect: () => void;
+function ThemeChip({
+  theme,
+  isSelected,
+  onSelect,
+}: {
+  theme: CustomTheme;
+  isSelected: boolean;
+  onSelect: () => void;
 }) {
   const colors = useColors();
+  const typography = useTypography();
+
   return (
-    <Pressable onPress={onSelect} style={[
-      styles.chip,
-      { borderColor: isSelected ? colors.primary : colors.border,
-        backgroundColor: isSelected ? colors.primaryGlow : colors.surface },
-    ]}>
-      <Text style={styles.chipEmoji}>{theme.cards[0]?.emoji ?? '🃏'}</Text>
-      <Text style={[styles.chipLabel, { color: isSelected ? colors.primary : colors.textSecondary }]}>
+    <Pressable
+      onPress={onSelect}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        isSelected && {
+          borderColor: colors.primary,
+          backgroundColor: colors.primaryGlow,
+        },
+      ]}
+    >
+      <Text style={styles.chipEmoji}>{theme.cards[0]?.emoji ?? ''}</Text>
+
+      <Text
+        style={[
+          styles.chipLabel,
+          typography.semiBold,
+          {
+            color: isSelected ? colors.primary : colors.textSecondary,
+          },
+        ]}
+      >
         {theme.name}
       </Text>
     </Pressable>
@@ -153,38 +309,87 @@ function ThemeChip({ theme, isSelected, onSelect }: {
 }
 
 const styles = StyleSheet.create({
-  root:    { flex: 1 },
-  flex:    { flex: 1 },
-  scroll:  { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 60 },
-  inner:   { gap: 28, alignSelf: 'center', width: '100%' },
-  hero:    { alignItems: 'center', gap: 14 },
-  logo:    { width: 90, height: 90, borderRadius: 22 },
-  logoEmoji: { fontSize: 76 },
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  inner: {
+    gap: 28,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  hero: {
+    alignItems: 'center',
+    gap: 14,
+  },
+  logo: {
+    width: 90,
+    height: 90,
+    borderRadius: 22,
+  },
+  logoEmoji: {
+    fontSize: 76,
+  },
   title: {
-    color: colors.primary, fontSize: 44, fontWeight: '900',
-    textAlign: 'center', letterSpacing: -1,
+    fontSize: 44,
+    fontWeight: '900',
+    textAlign: 'center',
+    letterSpacing: -1,
   },
-  subtitle:  { color: colors.textSecondary, fontSize: 17, textAlign: 'center' },
-  section:   { gap: 10 },
-  sectionLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1.5 },
-  themeScroll:  { gap: 10, paddingVertical: 4 },
+  subtitle: {
+    fontSize: 17,
+    textAlign: 'center',
+  },
+  section: {
+    gap: 10,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+  },
+  themeScroll: {
+    gap: 10,
+    paddingVertical: 4,
+  },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.surface, borderRadius: 50,
-    paddingVertical: 10, paddingHorizontal: 18,
-    borderWidth: 2, borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 50,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderWidth: 2,
   },
-  chipActive:      { borderColor: colors.primary, backgroundColor: colors.primaryGlow },
-  chipEmoji:       { fontSize: 20 },
-  chipLabel:       { color: colors.textSecondary, fontSize: 15, fontWeight: '600' },
-  chipLabelActive: { color: colors.primary },
-  navRow:     { flexDirection: 'row', gap: 10 },
-  navBtnWrap: { flex: 1 },
-  navBtn: {
-    alignItems: 'center', gap: 8,
-    backgroundColor: colors.surface, borderRadius: 18,
-    paddingVertical: 16, borderWidth: 1.5, borderColor: colors.border,
+  chipEmoji: {
+    fontSize: 20,
   },
-  navIcon:  { color: colors.primary, fontSize: 24 },
-  navLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
+  chipLabel: {
+    fontSize: 15,
+  },
+  navRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  navButtonWrap: {
+    flex: 1,
+  },
+  navButton: {
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 18,
+    paddingVertical: 16,
+    borderWidth: 1.5,
+  },
+  navIcon: {
+    fontSize: 24,
+  },
+  navLabel: {
+    fontSize: 12,
+  },
 });

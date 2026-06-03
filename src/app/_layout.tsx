@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Platform, Text, TextInput } from 'react-native';
-import { WEB_FONT_FAMILY, resolveFontFamily } from '@/hooks/useTypography';
 
 import {
   Inter_400Regular,
@@ -42,9 +41,10 @@ import {
 
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 import { ToastProvider } from '@/components/ui/Toast';
-import { colors as base } from '@/constants/colors';
+import { colors as baseColors } from '@/constants/colors';
 import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
 import { ThemesProvider } from '@/contexts/ThemesContext';
+import { WEB_FONT_FAMILY, resolveFontFamily } from '@/hooks/useTypography';
 
 const GOOGLE_FONTS_URL: Record<string, string> = {
   inter:
@@ -59,17 +59,6 @@ const GOOGLE_FONTS_URL: Record<string, string> = {
     'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap',
 };
 
-const FONT_CSS_FAMILY: Record<string, string> = {
-  system: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-  inter: '"Inter", system-ui, sans-serif',
-  poppins: '"Poppins", system-ui, sans-serif',
-  nunito: '"Nunito", system-ui, sans-serif',
-  roboto: '"Roboto", system-ui, sans-serif',
-  montserrat: '"Montserrat", system-ui, sans-serif',
-  serif: 'Georgia, "Times New Roman", serif',
-  mono: '"Courier New", Courier, monospace',
-};
-
 function hexToRgba(hex: string, opacity: number) {
   const cleanHex = hex.replace('#', '');
 
@@ -80,7 +69,7 @@ function hexToRgba(hex: string, opacity: number) {
   return `rgba(${r},${g},${b},${opacity})`;
 }
 
-function FontLoader({ children }: { children: React.ReactNode }) {
+function FontLoader({ children }: { children: ReactNode }) {
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_600SemiBold,
@@ -127,13 +116,19 @@ function NativeFontApplier() {
     const TextComponent = Text as typeof Text & {
       defaultProps?: { style?: unknown };
     };
+
     const TextInputComponent = TextInput as typeof TextInput & {
       defaultProps?: { style?: unknown };
     };
 
     const previousTextDefaults = TextComponent.defaultProps;
     const previousInputDefaults = TextInputComponent.defaultProps;
-    const fontStyle = nativeFontFamily ? { fontFamily: nativeFontFamily } : undefined;
+
+    const fontStyle = nativeFontFamily
+      ? {
+          fontFamily: nativeFontFamily,
+        }
+      : undefined;
 
     TextComponent.defaultProps = {
       ...previousTextDefaults,
@@ -154,10 +149,8 @@ function NativeFontApplier() {
   return null;
 }
 
-
 function WebThemeApplier() {
   const { settings } = useSettings();
-
   const { fontFamily, primaryColor } = settings.ui;
 
   useEffect(() => {
@@ -208,7 +201,9 @@ function WebThemeApplier() {
     const root = document.documentElement;
 
     root.style.setProperty('--primary', primaryColor);
-    root.style.setProperty('--primary-glow', hexToRgba(primaryColor, 0.15));
+    root.style.setProperty('--primary-glow', hexToRgba(primaryColor, 0.18));
+    root.style.setProperty('--primary-medium', hexToRgba(primaryColor, 0.32));
+    root.style.setProperty('--primary-strong', hexToRgba(primaryColor, 0.62));
   }, [primaryColor]);
 
   return null;
@@ -236,7 +231,7 @@ function useWebSetup() {
       'viewport',
       'width=device-width,initial-scale=1,viewport-fit=cover',
     );
-    setMeta('theme-color', base.background);
+    setMeta('theme-color', baseColors.background);
     setMeta('mobile-web-app-capable', 'yes');
     setMeta('apple-mobile-web-app-capable', 'yes');
     setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
@@ -254,57 +249,62 @@ function useWebSetup() {
 
     manifestLink.href = './manifest.json';
 
-    const style = document.createElement('style');
+    const styleId = 'memory-game-web-base-style';
 
-    style.textContent = `
-      html, body, #root {
-        min-height: 100%;
-        background: ${base.background};
-      }
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
 
-      body {
-        margin: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        overscroll-behavior-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
+      style.id = styleId;
+      style.textContent = `
+        html, body, #root {
+          min-height: 100%;
+          background: ${baseColors.background};
+        }
 
-      * {
-        -webkit-tap-highlight-color: transparent;
-        box-sizing: border-box;
-      }
+        body {
+          margin: 0;
+          overflow-x: hidden;
+          overflow-y: auto;
+          overscroll-behavior-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
 
-      ::-webkit-scrollbar {
-        display: none;
-      }
-    `;
+        * {
+          -webkit-tap-highlight-color: transparent;
+          box-sizing: border-box;
+        }
 
-    document.head.appendChild(style);
-    document.body.style.backgroundColor = base.background;
-    document.documentElement.style.backgroundColor = base.background;
+        ::-webkit-scrollbar {
+          display: none;
+        }
+      `;
+
+      document.head.appendChild(style);
+    }
+
+    document.body.style.backgroundColor = baseColors.background;
+    document.documentElement.style.backgroundColor = baseColors.background;
   }, []);
 }
 
 function AppStack() {
   const { settings } = useSettings();
-
   const { primaryColor } = settings.ui;
 
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: base.surface,
+          backgroundColor: baseColors.surface,
         },
         headerTintColor: primaryColor,
         headerTitleStyle: {
-          color: base.text,
+          color: baseColors.text,
           fontWeight: '800',
         },
         headerShadowVisible: false,
         contentStyle: {
-          backgroundColor: base.background,
+          backgroundColor: baseColors.background,
         },
       }}
     >
