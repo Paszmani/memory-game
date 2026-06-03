@@ -26,11 +26,17 @@ import { useThemeManager } from '@/hooks/useThemeManager';
 import { saveGameResult } from '@/services/scoreService';
 import { GameResult } from '@/types/game';
 import { createId } from '@/utils/id';
+import { useTypography } from '@/hooks/useTypography';
+
 
 export default function GameScreen() {
   const params = useLocalSearchParams();
   const { settings } = useAppSettings();
   const { themes, isLoading } = useThemeManager();
+
+  const typography = useTypography();
+  const radius = Math.max(12, settings.ui.globalRadius ?? 16);
+  const panelBackground = settings.ui.useGlassmorphism ? colors.glass : colors.surface;
 
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
@@ -149,11 +155,38 @@ export default function GameScreen() {
           )}
 
           <View style={[styles.topBar, isLandscape && styles.topBarLandscape]}>
-            <Pressable onPress={handleGoHome} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>‹ Início</Text>
+            <Pressable
+              onPress={handleGoHome}
+              style={[
+                styles.backBtn,
+                {
+                  borderRadius: radius,
+                  backgroundColor: panelBackground,
+                  borderColor: settings.ui.useGlassmorphism
+                    ? colors.glassBorder
+                    : colors.surfaceLight,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.backBtnText,
+                  typography.getFontStyle('bold'),
+                  { color: colors.primary },
+                ]}
+              >
+                ‹ Início
+              </Text>
             </Pressable>
 
-            <Text style={styles.themeName} numberOfLines={1}>
+            <Text
+              style={[
+                styles.themeName,
+                typography.getFontStyle('bold'),
+                { color: colors.text },
+              ]}
+              numberOfLines={1}
+            >
               {selectedTheme.name}
             </Text>
           </View>
@@ -196,7 +229,8 @@ export default function GameScreen() {
             />
           </ScrollView>
 
-          <View style={[styles.footer, isLandscape && styles.footerLandscape]}>
+          <View style={[styles.footer, isLandscape && styles.footerLandscape, 
+            {backgroundColor:panelBackground, borderTopColor: colors.border,}, ]}>
             <AppButton
               title="↺ Reiniciar"
               onPress={handleRestart}

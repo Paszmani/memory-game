@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
-
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
 import type { GameBehaviorSettings } from '@/types/settings';
 import { formatSeconds } from '@/utils/format';
 
@@ -19,22 +20,39 @@ interface StatBoxProps {
 
 const StatBox = memo(({ label, value }: StatBoxProps) => {
   const colors = useColors();
+  const typography = useTypography();
+  const { settings } = useAppSettings();
+
+  const radius = Math.max(12, settings.ui.globalRadius ?? 16);
 
   return (
     <View
       style={[
         styles.box,
         {
-          backgroundColor: colors.surface,
+          backgroundColor: settings.ui.useGlassmorphism ? colors.glass : colors.surface,
           borderColor: colors.primaryBorder,
+          borderRadius: radius,
         },
       ]}
     >
-      <Text style={[styles.boxLabel, { color: colors.textMuted }]}>
+      <Text
+        style={[
+          styles.boxLabel,
+          typography.getFontStyle('semibold'),
+          { color: colors.textMuted },
+        ]}
+      >
         {label}
       </Text>
 
-      <Text style={[styles.boxValue, { color: colors.primary }]}>
+      <Text
+        style={[
+          styles.boxValue,
+          typography.getFontStyle('black'),
+          { color: colors.primary },
+        ]}
+      >
         {value}
       </Text>
     </View>
@@ -53,7 +71,9 @@ export const GameHeader = memo(({ moves, elapsedSeconds, settings }: Props) => {
     ),
   ].filter(Boolean);
 
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return null;
+  }
 
   return <View style={styles.container}>{items}</View>;
 });
@@ -67,7 +87,6 @@ const styles = StyleSheet.create({
   },
   box: {
     flex: 1,
-    borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderWidth: 1,
@@ -76,12 +95,10 @@ const styles = StyleSheet.create({
   },
   boxLabel: {
     fontSize: 10,
-    fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   boxValue: {
     fontSize: 24,
-    fontWeight: '900',
   },
 });

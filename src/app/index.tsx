@@ -72,6 +72,7 @@ export default function HomeScreen() {
         <AttractScreen
           gameTitle={branding.gameTitle}
           message={totem.attractMessage}
+          centerImageUri={totem.attractCenterImageUri}
           onDismiss={deactivate}
         />
       )}

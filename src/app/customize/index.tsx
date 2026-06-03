@@ -23,6 +23,7 @@ import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { colors }             from '@/constants/colors';
 import { AppSettings, DeepPartial } from '@/types/settings';
 import { CreateThemeInput, CustomTheme } from '@/types/theme';
+import { TotemCustomizer } from '@/components/customize/TotemCustomizer';
 
 import {
   createCustomTheme,
@@ -161,7 +162,7 @@ export default function CustomizeScreen() {
       {activeTab === 'cartas'   && <CardStylePicker   value={settings.cardStyle}    onSave={makeSaver('cardStyle')} />}
       {activeTab === 'animacao' && <AnimationPicker   value={settings.animation}    onSave={makeSaver('animation')} />}
       {activeTab === 'jogo'     && <GameplaySettings  value={settings.gameBehavior} onSave={makeSaver('gameBehavior')} />}
-      {activeTab === 'totem'    && <TotemTab value={settings.totem} onSave={makeSaver('totem')} />}
+      {activeTab === 'totem'    && <TotemCustomizer value={settings.totem} onSave={makeSaver('totem')} />}
     </ScreenContainer>
   );
 }

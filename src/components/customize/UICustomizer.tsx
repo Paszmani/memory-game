@@ -18,9 +18,12 @@ import { useSaveState } from '@/hooks/useSaveState';
 import {
   ButtonStyleType,
   FontFamilyOption,
-  UIFontSize,
   UISettings,
 } from '@/types/settings';
+import {
+  WEB_FONT_FAMILY,
+  getFontStyle as getPreviewFontStyle,
+} from '@/hooks/useTypography';
 
 interface Props {
   value: UISettings;
@@ -74,12 +77,12 @@ const NATIVE_FONT_FAMILY: Record<FontFamilyOption, string | undefined> = {
   mono: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
 };
 
-const FONT_SIZES: { key: UIFontSize; label: string }[] = [
+/* const FONT_SIZES: { key: UIFontSize; label: string }[] = [
   { key: 'small', label: 'P' },
   { key: 'medium', label: 'M' },
   { key: 'large', label: 'G' },
   { key: 'xlarge', label: 'GG' },
-];
+]; */
 
 const BTN_STYLES: { key: ButtonStyleType; label: string }[] = [
   { key: 'filled', label: 'Preenchido' },
@@ -104,21 +107,36 @@ function usePreviewFontsLoader() {
       if (!url) return;
 
       const id = `preview-font-${fontKey}`;
-
       if (document.getElementById(id)) {
         return;
       }
 
       const link = document.createElement('link');
-
       link.id = id;
       link.rel = 'stylesheet';
       link.href = url;
-
       document.head.appendChild(link);
     });
+
+    let previewOverride = document.getElementById(
+      'font-preview-override',
+    ) as HTMLStyleElement | null;
+
+    if (!previewOverride) {
+      previewOverride = document.createElement('style');
+      previewOverride.id = 'font-preview-override';
+      document.head.appendChild(previewOverride);
+    }
+
+    previewOverride.textContent = Object.entries(WEB_FONT_FAMILY)
+      .map(
+        ([key, family]) =>
+          `#font-preview-${key}, #font-preview-${key} * { font-family: ${family} !important; }`,
+      )
+      .join('\n');
   }, []);
 }
+
 
 function getPreviewFontFamily(font: FontFamilyOption) {
   if (Platform.OS === 'web') {
@@ -126,6 +144,10 @@ function getPreviewFontFamily(font: FontFamilyOption) {
   }
 
   return NATIVE_FONT_FAMILY[font];
+}
+
+function getPreviewStyle(font: FontFamilyOption) {
+  return getPreviewFontStyle(font, 'regular');
 }
 
 export const UICustomizer = memo(({ value, onSave }: Props) => {
@@ -168,12 +190,8 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
               style={[styles.fontChip, isActive && styles.fontChipActive]}
             >
               <Text
-                style={[
-                  styles.fontSample,
-                  previewFontFamily
-                    ? { fontFamily: previewFontFamily }
-                    : undefined,
-                ]}
+                nativeID={`font-preview-${key}`}
+                style={[styles.fontSample, getPreviewStyle(key)]}
               >
                 {sample}
               </Text>
@@ -191,9 +209,9 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
         })}
       </View>
 
-      <Text style={styles.sub}>Tamanho de Texto</Text>
+      {/* <Text style={styles.sub}>Tamanho de Texto</Text> */}
 
-      <View style={styles.row}>
+      {/* <View style={styles.row}>
         {FONT_SIZES.map(({ key, label }) => (
           <Pressable
             key={key}
@@ -210,7 +228,7 @@ export const UICustomizer = memo(({ value, onSave }: Props) => {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </View> */}
 
       <Text style={styles.sub}>Estilo de Botões</Text>
 

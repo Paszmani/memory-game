@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 
 import { Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
-import { Platform } from 'react-native';
+import { Platform, Text, TextInput } from 'react-native';
+import { WEB_FONT_FAMILY, resolveFontFamily } from '@/hooks/useTypography';
 
 import {
   Inter_400Regular,
@@ -114,6 +115,46 @@ function FontLoader({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function NativeFontApplier() {
+  const { settings } = useSettings();
+  const nativeFontFamily = resolveFontFamily(settings.ui.fontFamily, 'regular');
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      return;
+    }
+
+    const TextComponent = Text as typeof Text & {
+      defaultProps?: { style?: unknown };
+    };
+    const TextInputComponent = TextInput as typeof TextInput & {
+      defaultProps?: { style?: unknown };
+    };
+
+    const previousTextDefaults = TextComponent.defaultProps;
+    const previousInputDefaults = TextInputComponent.defaultProps;
+    const fontStyle = nativeFontFamily ? { fontFamily: nativeFontFamily } : undefined;
+
+    TextComponent.defaultProps = {
+      ...previousTextDefaults,
+      style: [fontStyle, previousTextDefaults?.style],
+    };
+
+    TextInputComponent.defaultProps = {
+      ...previousInputDefaults,
+      style: [fontStyle, previousInputDefaults?.style],
+    };
+
+    return () => {
+      TextComponent.defaultProps = previousTextDefaults;
+      TextInputComponent.defaultProps = previousInputDefaults;
+    };
+  }, [nativeFontFamily]);
+
+  return null;
+}
+
+
 function WebThemeApplier() {
   const { settings } = useSettings();
 
@@ -140,7 +181,7 @@ function WebThemeApplier() {
       }
     }
 
-    const cssFamily = FONT_CSS_FAMILY[fontFamily] ?? FONT_CSS_FAMILY.system;
+    const cssFamily = WEB_FONT_FAMILY[fontFamily] ?? WEB_FONT_FAMILY.system;
 
     let styleElement = document.getElementById(
       'rn-font-override',
@@ -320,6 +361,7 @@ export default function RootLayout() {
         <ThemesProvider>
           <ToastProvider>
             <ConfirmProvider>
+              <NativeFontApplier />
               <WebThemeApplier />
               <AppStack />
             </ConfirmProvider>
