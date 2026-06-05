@@ -12,11 +12,11 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { CARD_BORDER_RADIUS } from '@/constants/defaultSettings';
 import { useColors } from '@/hooks/useColors';
 import { useSaveState } from '@/hooks/useSaveState';
-import { useTypography } from '@/hooks/useTypography';
 import { pickCardBackImage } from '@/services/imageService';
 import type {
   CardBackPattern,
   CardShape,
+  CardSizeOption,
   CardStyleSettings,
 } from '@/types/settings';
 
@@ -30,6 +30,28 @@ const SHAPES: { key: CardShape; label: string }[] = [
   { key: 'soft', label: 'Suave' },
   { key: 'rounded', label: 'Redondo' },
   { key: 'circle', label: 'Círculo' },
+];
+
+const CARD_SIZES: {
+  key: CardSizeOption;
+  label: string;
+  description: string;
+}[] = [
+  {
+    key: 'small',
+    label: 'Pequeno',
+    description: 'Mais cartas visíveis na tela.',
+  },
+  {
+    key: 'medium',
+    label: 'Médio',
+    description: 'Equilíbrio entre tamanho e quantidade.',
+  },
+  {
+    key: 'large',
+    label: 'Grande',
+    description: 'Imagens maiores e mais destaque.',
+  },
 ];
 
 const BACK_PATTERNS: { key: CardBackPattern; label: string }[] = [
@@ -48,7 +70,6 @@ const CARD_COLORS: { key: keyof CardStyleSettings; label: string }[] = [
 
 export const CardStylePicker = memo(({ value, onSave }: Props) => {
   const colors = useColors();
-  const typography = useTypography();
 
   const { localValue: local, status, update, save, reset } = useSaveState(
     value,
@@ -56,6 +77,7 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
   );
 
   const radius = CARD_BORDER_RADIUS[local.shape] ?? 16;
+  const selectedCardSize = local.cardSize ?? 'medium';
 
   async function handlePickBackImage() {
     const uri = await pickCardBackImage();
@@ -87,12 +109,13 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
               source={{ uri: local.backImageUri }}
               style={styles.fullImage}
               contentFit="cover"
+              contentPosition="center"
+              cachePolicy="memory-disk"
             />
           ) : (
             <Text
               style={[
                 styles.previewSymbol,
-                typography.black,
                 {
                   color: local.backPatternColor,
                 },
@@ -141,7 +164,6 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
           <Text
             style={[
               styles.previewCheck,
-              typography.black,
               {
                 color: colors.success,
               },
@@ -155,7 +177,6 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
       <Text
         style={[
           styles.previewHint,
-          typography.regular,
           {
             color: colors.textMuted,
           },
@@ -167,7 +188,67 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
       <Text
         style={[
           styles.sub,
-          typography.semiBold,
+          {
+            color: colors.textSecondary,
+          },
+        ]}
+      >
+        Tamanho das cartas
+      </Text>
+
+      <View style={styles.sizeGrid}>
+        {CARD_SIZES.map(({ key, label, description }) => {
+          const active = selectedCardSize === key;
+
+          return (
+            <Pressable
+              key={key}
+              onPress={() =>
+                update({
+                  cardSize: key,
+                })
+              }
+              style={[
+                styles.sizeCard,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.background,
+                },
+                active && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryGlow,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.sizeTitle,
+                  {
+                    color: active ? colors.primary : colors.text,
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+
+              <Text
+                style={[
+                  styles.sizeDescription,
+                  {
+                    color: colors.textMuted,
+                  },
+                ]}
+              >
+                {description}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text
+        style={[
+          styles.sub,
           {
             color: colors.textSecondary,
           },
@@ -203,7 +284,6 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
               <Text
                 style={[
                   styles.chipText,
-                  typography.semiBold,
                   {
                     color: active ? colors.primary : colors.textMuted,
                   },
@@ -219,7 +299,6 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
       <Text
         style={[
           styles.sub,
-          typography.semiBold,
           {
             color: colors.textSecondary,
           },
@@ -255,7 +334,6 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
               <Text
                 style={[
                   styles.chipText,
-                  typography.semiBold,
                   {
                     color: active ? colors.primary : colors.textMuted,
                   },
@@ -271,7 +349,11 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
       {local.backPattern === 'image' && (
         <View style={styles.imageBackSection}>
           <AppButton
-            title={local.backImageUri ? 'Trocar imagem do verso' : 'Selecionar imagem do verso'}
+            title={
+              local.backImageUri
+                ? 'Trocar imagem do verso'
+                : 'Selecionar imagem do verso'
+            }
             onPress={handlePickBackImage}
             fullWidth
           />
@@ -287,6 +369,8 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
                   },
                 ]}
                 contentFit="cover"
+                contentPosition="center"
+                cachePolicy="memory-disk"
               />
 
               <AppButton
@@ -309,7 +393,6 @@ export const CardStylePicker = memo(({ value, onSave }: Props) => {
       <Text
         style={[
           styles.sub,
-          typography.semiBold,
           {
             color: colors.textSecondary,
           },
@@ -422,12 +505,14 @@ const styles = StyleSheet.create({
   },
   previewSymbol: {
     fontSize: 24,
+    fontWeight: '900',
   },
   previewEmoji: {
     fontSize: 28,
   },
   previewCheck: {
     fontSize: 22,
+    fontWeight: '900',
   },
   previewHint: {
     fontSize: 11,
@@ -435,7 +520,26 @@ const styles = StyleSheet.create({
   },
   sub: {
     fontSize: 13,
+    fontWeight: '600',
     marginTop: 4,
+  },
+  sizeGrid: {
+    gap: 8,
+  },
+  sizeCard: {
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 3,
+  },
+  sizeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  sizeDescription: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   row: {
     flexDirection: 'row',
@@ -450,6 +554,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 13,
+    fontWeight: '600',
   },
   imageBackSection: {
     gap: 8,
