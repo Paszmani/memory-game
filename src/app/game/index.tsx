@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+
 import { StatusBar } from 'expo-status-bar';
 
 import { AttractScreen } from '@/components/game/AttractScreen';
@@ -21,24 +23,22 @@ import { AppButton } from '@/components/ui/AppButton';
 import { colors } from '@/constants/colors';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAttractScreen } from '@/hooks/useAttractScreen';
+import { useColors } from '@/hooks/useColors';
 import { useMemoryGame } from '@/hooks/useMemoryGame';
 import { useThemeManager } from '@/hooks/useThemeManager';
 import { saveGameResult } from '@/services/scoreService';
 import { GameResult } from '@/types/game';
 import { createId } from '@/utils/id';
-import { useTypography } from '@/hooks/useTypography';
-
 
 export default function GameScreen() {
   const params = useLocalSearchParams();
+
   const { settings } = useAppSettings();
+  const dynamicColors = useColors();
+
   const { themes, isLoading } = useThemeManager();
-
-  const typography = useTypography();
-  const radius = Math.max(12, settings.ui.globalRadius ?? 16);
-  const panelBackground = settings.ui.useGlassmorphism ? colors.glass : colors.surface;
-
   const { width, height } = useWindowDimensions();
+
   const isLandscape = width > height;
 
   const selectedThemeId =
@@ -48,13 +48,16 @@ export default function GameScreen() {
   const autoResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedTheme = useMemo(
-    () => themes.find((t) => t.id === selectedThemeId) ?? themes[0],
+    () => themes.find((theme) => theme.id === selectedThemeId) ?? themes[0],
     [selectedThemeId, themes],
   );
 
   const { gameBehavior, cardStyle } = settings;
 
-  // Sempre usa todas as cartas únicas do tema selecionado.
+  /*
+   * Mantém o comportamento atual:
+   * o jogo usa todas as cartas únicas do tema selecionado.
+   */
   const pairCount = selectedTheme?.cards.length ?? 0;
 
   const boardColumns = isLandscape
@@ -130,49 +133,85 @@ export default function GameScreen() {
     router.replace('/');
   }, []);
 
+  const getBackButtonBackground = () => {
+    if (settings.ui.buttonStyle === 'outlined') {
+      return 'transparent';
+    }
+
+    if (settings.ui.buttonStyle === 'flat') {
+      return dynamicColors.primaryGlow;
+    }
+
+    if (settings.ui.useGlassmorphism) {
+      return dynamicColors.primaryGlow;
+    }
+
+    return dynamicColors.primaryGlow;
+  };
+
+  const getBackButtonBorderColor = () => {
+    if (settings.ui.buttonStyle === 'flat') {
+      return 'transparent';
+    }
+
+    return dynamicColors.primaryMedium;
+  };
+
   if (isLoading || !selectedTheme) {
     return (
-      <GradientBackground settings={settings.background} style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.loadingText}>Carregando...</Text>
+      <GradientBackground settings={settings.background}>
+        <View style={styles.center}>
+          <ActivityIndicator color={dynamicColors.primary} size="large" />
+
+          <Text
+            style={[
+              styles.loadingText,
+              {
+                color: settings.ui.textColor,
+              },
+            ]}
+          >
+            Carregando...
+          </Text>
+        </View>
       </GradientBackground>
     );
   }
 
   return (
-    <GradientBackground settings={settings.background} style={styles.container}>
+    <GradientBackground settings={settings.background}>
       <StatusBar style="light" />
 
       <SafeAreaView style={styles.safe}>
-        <Pressable style={styles.flex} onPress={resetTimer}>
-          {isActive && (
-            <AttractScreen
-              gameTitle={settings.branding.gameTitle}
-              message={settings.totem.attractMessage}
-              centerImageUri={settings.totem.attractCenterImageUri}
-              onDismiss={deactivate}
-            />
-          )}
+        {isActive && (
+          <AttractScreen
+            message={settings.totem.attractMessage}
+            gameTitle={settings.branding.gameTitle}
+            centerImageUri={settings.totem.attractCenterImageUri}
+            onDismiss={deactivate}
+          />
+        )}
 
+        <View style={styles.container}>
           <View style={[styles.topBar, isLandscape && styles.topBarLandscape]}>
             <Pressable
               onPress={handleGoHome}
-              style={[
+              style={({ pressed }) => [
                 styles.backBtn,
                 {
-                  borderRadius: radius,
-                  backgroundColor: panelBackground,
-                  borderColor: settings.ui.useGlassmorphism
-                    ? colors.glassBorder
-                    : colors.surfaceLight,
+                  backgroundColor: getBackButtonBackground(),
+                  borderColor: getBackButtonBorderColor(),
+                  borderRadius: Math.max(8, settings.ui.globalRadius ?? 10),
+                  opacity: pressed ? 0.72 : 1,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.backBtnText,
-                  typography.getFontStyle('bold'),
-                  { color: colors.primary },
+                  {
+                    color: dynamicColors.primary,
+                  },
                 ]}
               >
                 ‹ Início
@@ -180,12 +219,13 @@ export default function GameScreen() {
             </Pressable>
 
             <Text
+              numberOfLines={1}
               style={[
                 styles.themeName,
-                typography.getFontStyle('bold'),
-                { color: colors.text },
+                {
+                  color: settings.ui.textColor,
+                },
               ]}
-              numberOfLines={1}
             >
               {selectedTheme.name}
             </Text>
@@ -208,8 +248,6 @@ export default function GameScreen() {
               isLandscape && styles.boardScrollLandscape,
             ]}
             showsVerticalScrollIndicator={false}
-            bounces={false}
-            overScrollMode="never"
           >
             {isLandscape && (
               <View style={styles.landscapeStats}>
@@ -229,49 +267,61 @@ export default function GameScreen() {
             />
           </ScrollView>
 
-          <View style={[styles.footer, isLandscape && styles.footerLandscape, 
-            {backgroundColor:panelBackground, borderTopColor: colors.border,}, ]}>
+          <View
+            style={[
+              styles.footer,
+              isLandscape && styles.footerLandscape,
+              {
+                borderTopColor: settings.ui.useGlassmorphism
+                  ? dynamicColors.primaryMedium
+                  : settings.ui.borderColor,
+                backgroundColor: settings.ui.useGlassmorphism
+                  ? dynamicColors.primaryGlow
+                  : settings.ui.surfaceColor,
+              },
+            ]}
+          >
             <AppButton
-              title="↺ Reiniciar"
-              onPress={handleRestart}
+              title="Reiniciar"
               variant="secondary"
               size={isLandscape ? 'sm' : 'md'}
+              onPress={handleRestart}
               fullWidth
             />
           </View>
-        </Pressable>
-      </SafeAreaView>
+        </View>
 
-      <GameFinishedModal
-        visible={game.isFinished}
-        moves={game.moves}
-        elapsedSeconds={game.elapsedSeconds}
-        onRestart={handleRestart}
-        onGoHome={handleGoHome}
-      />
+        <GameFinishedModal
+          visible={game.isFinished}
+          moves={game.moves}
+          elapsedSeconds={game.elapsedSeconds}
+          onRestart={handleRestart}
+          onGoHome={handleGoHome}
+        />
+      </SafeAreaView>
     </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
-  safe: { flex: 1 },
-
-  flex: { flex: 1 },
-
+  container: {
+    flex: 1,
+  },
+  safe: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
   },
-
   loadingText: {
-    color: colors.text,
     fontSize: 16,
   },
-
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -280,62 +330,47 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 6,
   },
-
   topBarLandscape: {
     paddingTop: 6,
     paddingBottom: 4,
   },
-
   backBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
   },
-
   backBtnText: {
-    color: colors.primary,
     fontSize: 15,
     fontWeight: '700',
   },
-
   themeName: {
     flex: 1,
-    color: colors.text,
     fontSize: 16,
     fontWeight: '800',
   },
-
   headerRow: {
     paddingHorizontal: 16,
     paddingBottom: 6,
   },
-
   boardScroll: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
-
   boardScrollLandscape: {
     paddingHorizontal: 8,
     paddingBottom: 4,
   },
-
   landscapeStats: {
     paddingBottom: 6,
     paddingHorizontal: 8,
   },
-
   footer: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.surface,
   },
-
   footerLandscape: {
     paddingVertical: 6,
   },

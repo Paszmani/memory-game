@@ -1,15 +1,11 @@
 import React, { memo, useMemo } from 'react';
 
-import {
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { MemoryCard } from '@/components/game/MemoryCard';
 import { useAppSettings } from '@/hooks/useAppSettings';
-import { CardStyleSettings } from '@/types/settings';
-import { MemoryCard as CardType } from '@/types/game';
+import type { MemoryCard as CardType } from '@/types/game';
+import type { CardStyleSettings } from '@/types/settings';
 
 interface Props {
   cards: CardType[];
@@ -18,38 +14,38 @@ interface Props {
   onFlip: (cardId: string) => void;
 }
 
-const MAX_BOARD_WIDTH = 960;
+/**
+ * Estimativa do espaço ocupado por topBar + header + footer.
+ * Usado apenas para dar uma altura mínima ao container e centralizar
+ * o tabuleiro quando existem poucas cartas.
+ */
+const CHROME_HEIGHT_PORTRAIT = 220;
+const CHROME_HEIGHT_LANDSCAPE = 160;
 
-const HORIZONTAL_PADDING_PORTRAIT = 32;
-const HORIZONTAL_PADDING_LANDSCAPE = 16;
+const HORIZONTAL_PADDING = 32;
+const MAX_BOARD_WIDTH = 980;
 
 const CARD_MARGIN = 4;
 const CARD_OUTER_GAP = CARD_MARGIN * 2;
 
-const MIN_CARD_SIZE = 52;
-const MAX_CARD_PORTRAIT = 180;
-const MAX_CARD_LANDSCAPE = 110;
-const MAX_CARD_WEB = 148;
+const MIN_CARD_SIZE = 48;
+const MAX_CARD_SIZE_PORTRAIT = 180;
+const MAX_CARD_SIZE_LANDSCAPE = 116;
+const MAX_CARD_SIZE_WEB = 148;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getHorizontalPadding(isLandscape: boolean) {
-  return isLandscape
-    ? HORIZONTAL_PADDING_LANDSCAPE
-    : HORIZONTAL_PADDING_PORTRAIT;
-}
-
 function getMaxCardSize(width: number, isLandscape: boolean) {
   if (width >= 900) {
-    return MAX_CARD_WEB;
+    return MAX_CARD_SIZE_WEB;
   }
 
-  return isLandscape ? MAX_CARD_LANDSCAPE : MAX_CARD_PORTRAIT;
+  return isLandscape ? MAX_CARD_SIZE_LANDSCAPE : MAX_CARD_SIZE_PORTRAIT;
 }
 
-function normalizeColumns({
+function getSafeColumns({
   preferredColumns,
   cardsCount,
   availableWidth,
@@ -58,23 +54,23 @@ function normalizeColumns({
   cardsCount: number;
   availableWidth: number;
 }) {
-  if (cardsCount <= 1) {
-    return cardsCount || 1;
+  if (cardsCount <= 0) {
+    return 1;
   }
 
-  const safePreferred = clamp(
-    Number.isFinite(preferredColumns) ? Math.floor(preferredColumns) : 4,
-    1,
-    8,
-  );
+  const normalizedPreferred = Number.isFinite(preferredColumns)
+    ? Math.floor(preferredColumns)
+    : 4;
 
-  const maxByWidth = Math.max(
+  const safePreferred = clamp(normalizedPreferred, 1, 10);
+
+  const maxColumnsByWidth = Math.max(
     1,
     Math.floor(availableWidth / (MIN_CARD_SIZE + CARD_OUTER_GAP)),
   );
 
   return clamp(
-    Math.min(safePreferred, maxByWidth, cardsCount),
+    Math.min(safePreferred, maxColumnsByWidth, cardsCount),
     1,
     Math.max(1, cardsCount),
   );
@@ -88,15 +84,13 @@ export const MemoryBoard = memo(
     const { width, height } = useWindowDimensions();
     const isLandscape = width > height;
 
-    const boardMetrics = useMemo(() => {
-      const horizontalPadding = getHorizontalPadding(isLandscape);
-
+    const metrics = useMemo(() => {
       const availableWidth = Math.max(
         MIN_CARD_SIZE + CARD_OUTER_GAP,
-        Math.min(width - horizontalPadding, MAX_BOARD_WIDTH),
+        Math.min(width - HORIZONTAL_PADDING, MAX_BOARD_WIDTH),
       );
 
-      const effectiveColumns = normalizeColumns({
+      const safeColumns = getSafeColumns({
         preferredColumns: columns,
         cardsCount: cards.length,
         availableWidth,
@@ -105,22 +99,28 @@ export const MemoryBoard = memo(
       const maxCardSize = getMaxCardSize(width, isLandscape);
 
       const rawCardSize = Math.floor(
-        availableWidth / effectiveColumns - CARD_OUTER_GAP,
+        availableWidth / safeColumns - CARD_OUTER_GAP,
       );
 
       const cardSize = clamp(rawCardSize, MIN_CARD_SIZE, maxCardSize);
 
       const boardWidth = Math.min(
         availableWidth,
-        effectiveColumns * (cardSize + CARD_OUTER_GAP),
+        safeColumns * (cardSize + CARD_OUTER_GAP),
       );
+
+      const chromeHeight = isLandscape
+        ? CHROME_HEIGHT_LANDSCAPE
+        : CHROME_HEIGHT_PORTRAIT;
+
+      const minBoardHeight = Math.max(0, height - chromeHeight);
 
       return {
         cardSize,
         boardWidth,
-        effectiveColumns,
+        minBoardHeight,
       };
-    }, [cards.length, columns, isLandscape, width]);
+    }, [cards.length, columns, height, isLandscape, width]);
 
     const animSettings = useMemo(
       () => ({
@@ -138,16 +138,32 @@ export const MemoryBoard = memo(
     );
 
     if (cards.length === 0) {
-      return <View style={styles.emptyContainer} />;
+      return (
+        <View
+          style={[
+            styles.container,
+            {
+              minHeight: metrics.minBoardHeight,
+            },
+          ]}
+        />
+      );
     }
 
     return (
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {
+            minHeight: metrics.minBoardHeight,
+          },
+        ]}
+      >
         <View
           style={[
             styles.board,
             {
-              width: boardMetrics.boardWidth,
+              width: metrics.boardWidth,
             },
           ]}
         >
@@ -155,7 +171,7 @@ export const MemoryBoard = memo(
             <MemoryCard
               key={card.id}
               card={card}
-              size={boardMetrics.cardSize}
+              size={metrics.cardSize}
               cardStyle={cardStyle}
               animSettings={animSettings}
               onPress={() => onFlip(card.id)}
@@ -176,17 +192,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
   },
-
-  emptyContainer: {
-    width: '100%',
-    minHeight: 180,
-  },
-
   board: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
     alignContent: 'center',
+    alignItems: 'center',
   },
 });

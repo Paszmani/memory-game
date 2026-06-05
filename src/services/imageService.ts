@@ -58,14 +58,14 @@ interface PickOptions {
 }
 
 export async function pickImageFromLibrary(
-  opts: PickOptions = { quality: 0.75 },
+  opts: PickOptions = { quality: 1 },
 ): Promise<string | null> {
   const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!granted) return null;
 
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes:    ['images'],
-    allowsEditing: true,
+    allowsEditing: false,
     aspect:        opts.aspect,
     quality:       opts.quality,
     base64:        Platform.OS === 'web',
@@ -92,23 +92,23 @@ export async function pickBackgroundImage(): Promise<{ uri: string; info: Screen
   const pw = Math.min(width, height);
   const ph = Math.max(width, height);
 
-  const uri = await pickImageFromLibrary({ aspect: [pw, ph], quality: 0.9 });
+  const uri = await pickImageFromLibrary({ aspect: [pw, ph], quality: 1 });
   if (!uri) return null;
 
   return { uri, info };
 }
 
 export async function pickCardBackImage(): Promise<string | null> {
-  return pickImageFromLibrary({ aspect: [1, 1], quality: 0.8 });
+  return pickImageFromLibrary({ aspect: [1, 1], quality: 1 });
 }
 
 export async function pickAttractImage(): Promise<string | null> {
   const { width, height } = Dimensions.get('screen');
   const pw = Math.min(width, height);
   const ph = Math.max(width, height);
-  return pickImageFromLibrary({ aspect: [pw, ph], quality: 0.85 });
+  return pickImageFromLibrary({ aspect: [pw, ph], quality: 1 });
 }
 
 export async function pickLogoImage(): Promise<string | null> {
-  return pickImageFromLibrary({ aspect: [1, 1], quality: 0.9 });
+  return pickImageFromLibrary({ aspect: [1, 1], quality: 1 });
 }

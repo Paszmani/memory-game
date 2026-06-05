@@ -1,21 +1,31 @@
 import React, { memo, useState } from 'react';
+
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { SaveBar }        from '@/components/ui/SaveBar';
-import { SectionCard }    from '@/components/ui/SectionCard';
-import { colors }         from '@/constants/colors';
-import { PRESET_THEMES }  from '@/constants/presetThemes';
-import { AppSettings }    from '@/types/settings';
+import { SaveBar } from '@/components/ui/SaveBar';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { PRESET_THEMES } from '@/constants/presetThemes';
+import { useColors } from '@/hooks/useColors';
+import { useTypography } from '@/hooks/useTypography';
+import type { AppSettings } from '@/types/settings';
 
 interface Props {
   onApply: (patch: DeepPartial<AppSettings>) => Promise<void>;
 }
 
-type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
 
 export const PresetThemesPicker = memo(({ onApply }: Props) => {
+  const colors = useColors();
+  const typography = useTypography();
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [status,     setStatus]     = useState<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle');
+
+  const [status, setStatus] = useState<
+    'idle' | 'dirty' | 'saving' | 'saved' | 'error'
+  >('idle');
 
   function handleSelect(id: string) {
     setSelectedId(id);
@@ -23,22 +33,42 @@ export const PresetThemesPicker = memo(({ onApply }: Props) => {
   }
 
   async function handleSave() {
-    const preset = PRESET_THEMES.find((p) => p.id === selectedId);
-    if (!preset) return;
+    const preset = PRESET_THEMES.find((theme) => theme.id === selectedId);
+
+    if (!preset) {
+      return;
+    }
 
     setStatus('saving');
+
     try {
       await onApply(preset.patch);
       setStatus('saved');
-      setTimeout(() => setStatus('idle'), 2500);
+
+      setTimeout(() => {
+        setStatus('idle');
+      }, 2500);
     } catch {
       setStatus('error');
     }
   }
 
+  function handleReset() {
+    setSelectedId(null);
+    setStatus('idle');
+  }
+
   return (
-    <SectionCard title="🎨 Temas Prontos">
-      <Text style={styles.hint}>
+    <SectionCard title="Temas prontos">
+      <Text
+        style={[
+          styles.hint,
+          typography.regular,
+          {
+            color: colors.textMuted,
+          },
+        ]}
+      >
         Selecione um tema para aplicar cores e estilos de uma vez.
       </Text>
 
@@ -54,26 +84,93 @@ export const PresetThemesPicker = memo(({ onApply }: Props) => {
             <Pressable
               key={preset.id}
               onPress={() => handleSelect(preset.id)}
-              style={[styles.card, isSelected && styles.cardSelected]}
+              style={[
+                styles.card,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                },
+                isSelected && {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.primaryGlow,
+                },
+              ]}
             >
-              {/* Mini preview de cores */}
-              <View style={styles.colorPreview}>
-                <View style={[styles.colorHalf, { backgroundColor: preset.preview[0] }]} />
-                <View style={[styles.colorHalf, { backgroundColor: preset.preview[1] }]} />
+              <View
+                style={[
+                  styles.colorPreview,
+                  {
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.colorHalf,
+                    {
+                      backgroundColor:
+                        preset.preview?.[0] ??
+                        preset.patch.background?.solidColor ??
+                        colors.background,
+                    },
+                  ]}
+                />
+
+                <View
+                  style={[
+                    styles.colorHalf,
+                    {
+                      backgroundColor:
+                        preset.preview?.[1] ??
+                        preset.patch.ui?.primaryColor ??
+                        colors.primary,
+                    },
+                  ]}
+                />
               </View>
 
               <Text style={styles.presetEmoji}>{preset.emoji}</Text>
-              <Text style={[styles.presetName, isSelected && styles.presetNameSelected]}>
+
+              <Text
+                style={[
+                  styles.presetName,
+                  typography.semiBold,
+                  {
+                    color: isSelected ? colors.primary : colors.textSecondary,
+                  },
+                ]}
+              >
                 {preset.name}
               </Text>
 
-              {isSelected && <View style={styles.checkmark}><Text style={styles.check}>✓</Text></View>}
+              {isSelected && (
+                <View
+                  style={[
+                    styles.checkmark,
+                    {
+                      backgroundColor: colors.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.check,
+                      typography.black,
+                      {
+                        color: colors.primaryText,
+                      },
+                    ]}
+                  >
+                    ✓
+                  </Text>
+                </View>
+              )}
             </Pressable>
           );
         })}
       </ScrollView>
 
-      <SaveBar status={status} onSave={handleSave} onReset={() => { setSelectedId(null); setStatus('idle'); }} />
+      <SaveBar status={status} onSave={handleSave} onReset={handleReset} />
     </SectionCard>
   );
 });
@@ -82,57 +179,49 @@ PresetThemesPicker.displayName = 'PresetThemesPicker';
 
 const styles = StyleSheet.create({
   hint: {
-    color:    colors.textMuted,
     fontSize: 13,
   },
   scroll: {
-    gap:           10,
+    gap: 10,
     paddingBottom: 4,
   },
   card: {
-    width:           100,
-    alignItems:      'center',
-    gap:             6,
-    padding:         10,
-    borderRadius:    16,
-    borderWidth:     2,
-    borderColor:     colors.border,
-    backgroundColor: colors.surface,
-  },
-  cardSelected: {
-    borderColor:     colors.primary,
-    backgroundColor: colors.primaryGlow,
+    width: 100,
+    alignItems: 'center',
+    gap: 6,
+    padding: 10,
+    borderRadius: 16,
+    borderWidth: 2,
   },
   colorPreview: {
-    width:        60,
-    height:       36,
+    width: 60,
+    height: 36,
     borderRadius: 10,
-    overflow:     'hidden',
-    flexDirection:'row',
-    borderWidth:  1,
-    borderColor:  colors.border,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    borderWidth: 1,
   },
   colorHalf: {
     flex: 1,
   },
-  presetEmoji:       { fontSize: 22 },
+  presetEmoji: {
+    fontSize: 22,
+  },
   presetName: {
-    color:     colors.textSecondary,
-    fontSize:  11,
-    fontWeight:'600',
+    fontSize: 11,
     textAlign: 'center',
   },
-  presetNameSelected: { color: colors.primary },
   checkmark: {
-    position:        'absolute',
-    top:             6,
-    right:           6,
-    width:           18,
-    height:          18,
-    borderRadius:    9,
-    backgroundColor: colors.primary,
-    alignItems:      'center',
-    justifyContent:  'center',
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  check: { color: colors.background, fontSize: 10, fontWeight: '900' },
+  check: {
+    fontSize: 10,
+  },
 });

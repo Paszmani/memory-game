@@ -21,6 +21,7 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
   const text = safeHex(ui?.textColor, base.text);
 
   const background = base.background;
+
   const primaryText = getContrastColor(primary);
 
   const surfaceElevated = lerpColor(surface, '#FFFFFF', 0.06);
@@ -30,7 +31,6 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
   const textMuted = lerpColor(text, background, 0.55);
 
   const borderLight = lerpColor(border, '#FFFFFF', 0.16);
-  const primaryBorder = lerpColor(border, primary, 0.6);
 
   const primaryGlow = hexToRgba(primary, 0.18);
   const primaryMedium = hexToRgba(primary, 0.32);
@@ -38,9 +38,11 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
 
   const primarySurface = lerpColor(surface, primary, 0.16);
   const primarySurfaceStrong = lerpColor(surface, primary, 0.28);
+  const primaryBorder = lerpColor(border, primary, 0.62);
 
   const selectedBackground = lerpColor(surface, primary, 0.22);
-  const selectedBorder = lerpColor(border, primary, 0.7);
+  const selectedBorder = lerpColor(border, primary, 0.72);
+  const selectedText = primary;
 
   const glass = hexToRgba(surface, 0.74);
   const glassBorder = ui?.useGlassmorphism
@@ -76,7 +78,7 @@ export function makeDynamicColors(ui?: Partial<UISettings>) {
 
     selectedBackground,
     selectedBorder,
-    selectedText: primary,
+    selectedText,
 
     buttonPrimaryBg: primary,
     buttonPrimaryBorder: lerpColor(primary, '#FFFFFF', 0.18),

@@ -1,83 +1,217 @@
 import React, { memo, useRef } from 'react';
+
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ImagePickerButton } from '@/components/customize/ImagePickerButton';
-import { SaveBar }           from '@/components/ui/SaveBar';
-import { SectionCard }       from '@/components/ui/SectionCard';
-import { colors }            from '@/constants/colors';
-import { useSaveState }      from '@/hooks/useSaveState';
-import { BrandingSettings }  from '@/types/settings';
+import { SaveBar } from '@/components/ui/SaveBar';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { useColors } from '@/hooks/useColors';
+import { useSaveState } from '@/hooks/useSaveState';
+import { useTypography } from '@/hooks/useTypography';
+import type { BrandingSettings } from '@/types/settings';
 
 interface Props {
-  value:  BrandingSettings;
-  onSave: (v: BrandingSettings) => Promise<void>;
+  value: BrandingSettings;
+  onSave: (value: BrandingSettings) => Promise<void>;
 }
 
-const ACCENT_EMOJIS = ['🧠', '🃏', '⭐', '🎮', '🎯', '🏆', '🎪', '🌟', '💡', '🔮'];
+const ACCENT_EMOJIS = ['🎮', '🧠', '⭐', '🚀', '🎯', '🧩', '✨', '🔥', '💎', '🏆'];
 
 export const BrandingEditor = memo(({ value, onSave }: Props) => {
-  const { localValue: local, status, update, save, reset } = useSaveState(value, onSave);
+  const colors = useColors();
+  const typography = useTypography();
+
+  const { localValue: local, status, update, save, reset } = useSaveState(
+    value,
+    onSave,
+  );
+
   const subtitleRef = useRef<TextInput>(null);
 
   return (
-    <SectionCard title="🏷️ Identidade">
-      {/* Preview */}
-      <View style={styles.preview}>
+    <SectionCard title="Identidade">
+      <View
+        style={[
+          styles.preview,
+          {
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <Text style={styles.previewEmoji}>{local.accentEmoji}</Text>
-        <Text style={styles.previewTitle}>{local.gameTitle || 'Título do jogo'}</Text>
-        <Text style={styles.previewSubtitle}>{local.gameSubtitle || 'Subtítulo'}</Text>
+
+        <Text
+          style={[
+            styles.previewTitle,
+            typography.black,
+            {
+              color: colors.primary,
+            },
+          ]}
+        >
+          {local.gameTitle || 'Título do jogo'}
+        </Text>
+
+        <Text
+          style={[
+            styles.previewSubtitle,
+            typography.regular,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          {local.gameSubtitle || 'Subtítulo'}
+        </Text>
       </View>
 
-      {/* Emoji de destaque */}
-      <Text style={styles.label}>Emoji de destaque</Text>
-      <View style={styles.emojiRow}>
-        {ACCENT_EMOJIS.map((e) => (
-          <Text
-            key={e}
-            style={[styles.emojiOption, local.accentEmoji === e && styles.emojiSelected]}
-            onPress={() => update({ accentEmoji: e })}
-          >
-            {e}
-          </Text>
-        ))}
-      </View>
-
-      {/* Título */}
       <View style={styles.field}>
-        <Text style={styles.label}>Título do jogo</Text>
+        <Text
+          style={[
+            styles.label,
+            typography.semiBold,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          Emoji de destaque
+        </Text>
+
+        <View style={styles.emojiRow}>
+          {ACCENT_EMOJIS.map((emoji) => {
+            const active = local.accentEmoji === emoji;
+
+            return (
+              <Text
+                key={emoji}
+                onPress={() =>
+                  update({
+                    accentEmoji: emoji,
+                  })
+                }
+                style={[
+                  styles.emojiOption,
+                  active && {
+                    backgroundColor: colors.primaryGlow,
+                    color: colors.primary,
+                  },
+                ]}
+              >
+                {emoji}
+              </Text>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.field}>
+        <Text
+          style={[
+            styles.label,
+            typography.semiBold,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          Título do jogo
+        </Text>
+
         <TextInput
           value={local.gameTitle}
-          onChangeText={(t) => update({ gameTitle: t })}
+          onChangeText={(gameTitle) =>
+            update({
+              gameTitle,
+            })
+          }
           placeholder="Jogo da Memória"
           placeholderTextColor={colors.textMuted}
-          style={styles.input}
+          style={[
+            styles.input,
+            typography.regular,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              color: colors.text,
+            },
+          ]}
           returnKeyType="next"
           onSubmitEditing={() => subtitleRef.current?.focus()}
         />
       </View>
 
-      {/* Subtítulo */}
       <View style={styles.field}>
-        <Text style={styles.label}>Subtítulo</Text>
+        <Text
+          style={[
+            styles.label,
+            typography.semiBold,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          Subtítulo
+        </Text>
+
         <TextInput
           ref={subtitleRef}
           value={local.gameSubtitle}
-          onChangeText={(t) => update({ gameSubtitle: t })}
+          onChangeText={(gameSubtitle) =>
+            update({
+              gameSubtitle,
+            })
+          }
           placeholder="Encontre todos os pares!"
           placeholderTextColor={colors.textMuted}
-          style={styles.input}
+          style={[
+            styles.input,
+            typography.regular,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              color: colors.text,
+            },
+          ]}
           returnKeyType="done"
         />
       </View>
 
-      {/* Logo */}
       <View style={styles.field}>
-        <Text style={styles.label}>Logo personalizada (opcional)</Text>
+        <Text
+          style={[
+            styles.label,
+            typography.semiBold,
+            {
+              color: colors.textSecondary,
+            },
+          ]}
+        >
+          Logo personalizada (opcional)
+        </Text>
+
         <ImagePickerButton
-          label={local.logoUri ? 'Trocar logo' : '📁 Adicionar logo'}
-          onImagePicked={(uri) => update({ logoUri: uri })}
+          onImagePicked={(logoUri) =>
+            update({
+              logoUri,
+            })
+          }
         />
-        {local.logoUri && <Text style={styles.success}>✅ Logo configurada</Text>}
+
+        {!!local.logoUri && (
+          <Text
+            style={[
+              styles.success,
+              typography.semiBold,
+              {
+                color: colors.success,
+              },
+            ]}
+          >
+            ✅ Logo configurada
+          </Text>
+        )}
       </View>
 
       <SaveBar status={status} onSave={save} onReset={reset} />
@@ -89,31 +223,48 @@ BrandingEditor.displayName = 'BrandingEditor';
 
 const styles = StyleSheet.create({
   preview: {
-    alignItems:      'center',
-    backgroundColor: colors.background,
-    borderRadius:    16,
-    padding:         20,
-    gap:             6,
-    borderWidth:     1,
-    borderColor:     colors.border,
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: 20,
+    gap: 6,
+    borderWidth: 1,
   },
-  previewEmoji:    { fontSize: 44 },
-  previewTitle:    { color: colors.text, fontSize: 24, fontWeight: '900', textAlign: 'center' },
-  previewSubtitle: { color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
-  emojiRow:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  emojiOption:    { fontSize: 28, padding: 6, borderRadius: 10, overflow: 'hidden' },
-  emojiSelected:  { backgroundColor: colors.primaryGlow },
-  field:      { gap: 8 },
-  label:      { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  previewEmoji: {
+    fontSize: 44,
+  },
+  previewTitle: {
+    fontSize: 24,
+    textAlign: 'center',
+  },
+  previewSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  emojiRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  emojiOption: {
+    fontSize: 28,
+    padding: 6,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  field: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 13,
+  },
   input: {
-    minHeight:         52,
-    backgroundColor:   colors.background,
-    borderRadius:      14,
+    minHeight: 52,
+    borderRadius: 14,
     paddingHorizontal: 16,
-    color:             colors.text,
-    borderWidth:       1,
-    borderColor:       colors.border,
-    fontSize:          16,
+    borderWidth: 1,
+    fontSize: 16,
   },
-  success: { color: colors.success, fontSize: 13 },
+  success: {
+    fontSize: 13,
+  },
 });
