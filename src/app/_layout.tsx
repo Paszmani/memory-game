@@ -1,52 +1,20 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
-import { useFonts } from 'expo-font';
-import { Platform, Text, TextInput } from 'react-native';
-
 import {
-  Inter_400Regular,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  Inter_900Black,
-} from '@expo-google-fonts/inter';
-
-import {
-  Poppins_400Regular,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-  Poppins_900Black,
-} from '@expo-google-fonts/poppins';
-
-import {
-  Nunito_400Regular,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_900Black,
-} from '@expo-google-fonts/nunito';
-
-import {
-  Roboto_400Regular,
-  Roboto_500Medium,
-  Roboto_700Bold,
-  Roboto_900Black,
-} from '@expo-google-fonts/roboto';
-
-import {
-  Montserrat_400Regular,
-  Montserrat_600SemiBold,
-  Montserrat_700Bold,
-  Montserrat_900Black,
-} from '@expo-google-fonts/montserrat';
+  SafeAreaProvider,
+  initialWindowMetrics,
+} from 'react-native-safe-area-context';
 
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 import { ToastProvider } from '@/components/ui/Toast';
-import { colors as baseColors } from '@/constants/colors';
+import { colors as base } from '@/constants/colors';
 import { SettingsProvider, useSettings } from '@/contexts/SettingsContext';
 import { ThemesProvider } from '@/contexts/ThemesContext';
-import { WEB_FONT_FAMILY, resolveFontFamily } from '@/hooks/useTypography';
+import type { FontFamilyOption } from '@/types/settings';
 
-const GOOGLE_FONTS_URL: Record<string, string> = {
+const GOOGLE_FONTS_URL: Partial<Record<FontFamilyOption, string>> = {
   inter:
     'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap',
   poppins:
@@ -59,94 +27,25 @@ const GOOGLE_FONTS_URL: Record<string, string> = {
     'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap',
 };
 
-function hexToRgba(hex: string, opacity: number) {
-  const cleanHex = hex.replace('#', '');
+const FONT_CSS_FAMILY: Record<FontFamilyOption, string> = {
+  system: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  inter: '"Inter", system-ui, sans-serif',
+  poppins: '"Poppins", system-ui, sans-serif',
+  nunito: '"Nunito", system-ui, sans-serif',
+  roboto: '"Roboto", system-ui, sans-serif',
+  montserrat: '"Montserrat", system-ui, sans-serif',
+  serif: 'Georgia, "Times New Roman", serif',
+  mono: '"Courier New", Courier, monospace',
+};
 
-  const r = parseInt(cleanHex.slice(0, 2), 16) || 0;
-  const g = parseInt(cleanHex.slice(2, 4), 16) || 0;
-  const b = parseInt(cleanHex.slice(4, 6), 16) || 0;
+function hexToRgba(hex: string, opacity: number) {
+  const clean = hex.replace('#', '');
+
+  const r = parseInt(clean.slice(0, 2), 16) || 0;
+  const g = parseInt(clean.slice(2, 4), 16) || 0;
+  const b = parseInt(clean.slice(4, 6), 16) || 0;
 
   return `rgba(${r},${g},${b},${opacity})`;
-}
-
-function FontLoader({ children }: { children: ReactNode }) {
-  const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Inter_900Black,
-
-    Poppins_400Regular,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    Poppins_900Black,
-
-    Nunito_400Regular,
-    Nunito_600SemiBold,
-    Nunito_700Bold,
-    Nunito_900Black,
-
-    Roboto_400Regular,
-    Roboto_500Medium,
-    Roboto_700Bold,
-    Roboto_900Black,
-
-    Montserrat_400Regular,
-    Montserrat_600SemiBold,
-    Montserrat_700Bold,
-    Montserrat_900Black,
-  });
-
-  if (!fontsLoaded) {
-    return null;
-  }
-
-  return <>{children}</>;
-}
-
-function NativeFontApplier() {
-  const { settings } = useSettings();
-  const nativeFontFamily = resolveFontFamily(settings.ui.fontFamily, 'regular');
-
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      return;
-    }
-
-    const TextComponent = Text as typeof Text & {
-      defaultProps?: { style?: unknown };
-    };
-
-    const TextInputComponent = TextInput as typeof TextInput & {
-      defaultProps?: { style?: unknown };
-    };
-
-    const previousTextDefaults = TextComponent.defaultProps;
-    const previousInputDefaults = TextInputComponent.defaultProps;
-
-    const fontStyle = nativeFontFamily
-      ? {
-          fontFamily: nativeFontFamily,
-        }
-      : undefined;
-
-    TextComponent.defaultProps = {
-      ...previousTextDefaults,
-      style: [fontStyle, previousTextDefaults?.style],
-    };
-
-    TextInputComponent.defaultProps = {
-      ...previousInputDefaults,
-      style: [fontStyle, previousInputDefaults?.style],
-    };
-
-    return () => {
-      TextComponent.defaultProps = previousTextDefaults;
-      TextInputComponent.defaultProps = previousInputDefaults;
-    };
-  }, [nativeFontFamily]);
-
-  return null;
 }
 
 function WebThemeApplier() {
@@ -174,19 +73,19 @@ function WebThemeApplier() {
       }
     }
 
-    const cssFamily = WEB_FONT_FAMILY[fontFamily] ?? WEB_FONT_FAMILY.system;
+    const cssFamily = FONT_CSS_FAMILY[fontFamily] ?? FONT_CSS_FAMILY.system;
 
-    let styleElement = document.getElementById(
+    let styleEl = document.getElementById(
       'rn-font-override',
     ) as HTMLStyleElement | null;
 
-    if (!styleElement) {
-      styleElement = document.createElement('style');
-      styleElement.id = 'rn-font-override';
-      document.head.appendChild(styleElement);
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'rn-font-override';
+      document.head.appendChild(styleEl);
     }
 
-    styleElement.textContent = `
+    styleEl.textContent = `
       *, *::before, *::after {
         font-family: ${cssFamily} !important;
       }
@@ -201,9 +100,7 @@ function WebThemeApplier() {
     const root = document.documentElement;
 
     root.style.setProperty('--primary', primaryColor);
-    root.style.setProperty('--primary-glow', hexToRgba(primaryColor, 0.18));
-    root.style.setProperty('--primary-medium', hexToRgba(primaryColor, 0.32));
-    root.style.setProperty('--primary-strong', hexToRgba(primaryColor, 0.62));
+    root.style.setProperty('--primary-glow', hexToRgba(primaryColor, 0.15));
   }, [primaryColor]);
 
   return null;
@@ -229,9 +126,9 @@ function useWebSetup() {
 
     setMeta(
       'viewport',
-      'width=device-width,initial-scale=1,viewport-fit=cover',
+      'width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no',
     );
-    setMeta('theme-color', baseColors.background);
+    setMeta('theme-color', base.background);
     setMeta('mobile-web-app-capable', 'yes');
     setMeta('apple-mobile-web-app-capable', 'yes');
     setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
@@ -249,23 +146,16 @@ function useWebSetup() {
 
     manifestLink.href = './manifest.json';
 
-    const styleId = 'memory-game-web-base-style';
-
-    if (!document.getElementById(styleId)) {
+    if (!document.getElementById('memory-game-web-base-style')) {
       const style = document.createElement('style');
 
-      style.id = styleId;
+      style.id = 'memory-game-web-base-style';
       style.textContent = `
-        html, body, #root {
-          min-height: 100%;
-          background: ${baseColors.background};
-        }
-
-        body {
-          margin: 0;
-          overflow-x: hidden;
-          overflow-y: auto;
-          overscroll-behavior-y: auto;
+        html, body {
+          overflow: hidden;
+          overscroll-behavior: none;
+          background: ${base.background};
+          height: 100%;
           -webkit-overflow-scrolling: touch;
         }
 
@@ -282,29 +172,34 @@ function useWebSetup() {
       document.head.appendChild(style);
     }
 
-    document.body.style.backgroundColor = baseColors.background;
-    document.documentElement.style.backgroundColor = baseColors.background;
+    document.body.style.backgroundColor = base.background;
+    document.documentElement.style.backgroundColor = base.background;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('./sw.js', { scope: './' })
+        .catch((error) => console.warn('[SW]', error));
+    }
   }, []);
 }
 
 function AppStack() {
   const { settings } = useSettings();
-  const { primaryColor } = settings.ui;
 
   return (
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: baseColors.surface,
+          backgroundColor: base.surface,
         },
-        headerTintColor: primaryColor,
+        headerTintColor: settings.ui.primaryColor,
         headerTitleStyle: {
-          color: baseColors.text,
+          color: base.text,
           fontWeight: '800',
         },
         headerShadowVisible: false,
         contentStyle: {
-          backgroundColor: baseColors.background,
+          backgroundColor: base.background,
         },
       }}
     >
@@ -356,18 +251,17 @@ export default function RootLayout() {
   useWebSetup();
 
   return (
-    <FontLoader>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <SettingsProvider>
         <ThemesProvider>
           <ToastProvider>
             <ConfirmProvider>
-              <NativeFontApplier />
               <WebThemeApplier />
               <AppStack />
             </ConfirmProvider>
           </ToastProvider>
         </ThemesProvider>
       </SettingsProvider>
-    </FontLoader>
+    </SafeAreaProvider>
   );
 }

@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ActivityIndicator,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,14 +12,15 @@ import {
 } from 'react-native';
 
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AttractScreen } from '@/components/game/AttractScreen';
 import { GameFinishedModal } from '@/components/game/GameFinishedModal';
 import { GameHeader } from '@/components/game/GameHeader';
 import { MemoryBoard } from '@/components/game/MemoryBoard';
-import { GradientBackground } from '@/components/ui/GradientBackground';
 import { AppButton } from '@/components/ui/AppButton';
-import { colors } from '@/constants/colors';
+import { GradientBackground } from '@/components/ui/GradientBackground';
+import { colors as baseColors } from '@/constants/colors';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAttractScreen } from '@/hooks/useAttractScreen';
 import { useColors } from '@/hooks/useColors';
@@ -34,7 +34,7 @@ export default function GameScreen() {
   const params = useLocalSearchParams();
 
   const { settings } = useAppSettings();
-  const dynamicColors = useColors();
+  const colors = useColors();
 
   const { themes, isLoading } = useThemeManager();
   const { width, height } = useWindowDimensions();
@@ -54,10 +54,6 @@ export default function GameScreen() {
 
   const { gameBehavior, cardStyle } = settings;
 
-  /*
-   * Mantém o comportamento atual:
-   * o jogo usa todas as cartas únicas do tema selecionado.
-   */
   const pairCount = selectedTheme?.cards.length ?? 0;
 
   const boardColumns = isLandscape
@@ -70,10 +66,27 @@ export default function GameScreen() {
     flipDelayMs: gameBehavior.flipDelayMs,
   });
 
-  const { isActive, deactivate, resetTimer } = useAttractScreen({
-    enabled: settings.totem.attractScreenEnabled,
+  const { isActive, notifyActivity } = useAttractScreen({
+    enabled: settings.totem.attractScreenEnabled && !game.isFinished,
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
+
+  const handleUserActivity = useCallback(() => {
+    notifyActivity();
+  }, [notifyActivity]);
+
+  const handleStartShouldSetResponderCapture = useCallback(() => {
+    notifyActivity();
+    return false;
+  }, [notifyActivity]);
+
+  const handleFlipCard = useCallback(
+    (cardId: string) => {
+      notifyActivity();
+      game.flipCard(cardId);
+    },
+    [game, notifyActivity],
+  );
 
   useEffect(() => {
     if (!game.isFinished || !selectedTheme || hasSavedRef.current) {
@@ -104,7 +117,7 @@ export default function GameScreen() {
     game.moves,
     game.elapsedSeconds,
     selectedTheme,
-    settings.totem,
+    settings.totem.autoResetAfterFinishSeconds,
   ]);
 
   useEffect(() => {
@@ -121,9 +134,9 @@ export default function GameScreen() {
     }
 
     hasSavedRef.current = false;
-    resetTimer();
+    notifyActivity();
     game.restartGame();
-  }, [game, resetTimer]);
+  }, [game, notifyActivity]);
 
   const handleGoHome = useCallback(() => {
     if (autoResetRef.current) {
@@ -133,47 +146,25 @@ export default function GameScreen() {
     router.replace('/');
   }, []);
 
-  const getBackButtonBackground = () => {
-    if (settings.ui.buttonStyle === 'outlined') {
-      return 'transparent';
-    }
-
-    if (settings.ui.buttonStyle === 'flat') {
-      return dynamicColors.primaryGlow;
-    }
-
-    if (settings.ui.useGlassmorphism) {
-      return dynamicColors.primaryGlow;
-    }
-
-    return dynamicColors.primaryGlow;
-  };
-
-  const getBackButtonBorderColor = () => {
-    if (settings.ui.buttonStyle === 'flat') {
-      return 'transparent';
-    }
-
-    return dynamicColors.primaryMedium;
-  };
-
   if (isLoading || !selectedTheme) {
     return (
       <GradientBackground settings={settings.background}>
-        <View style={styles.center}>
-          <ActivityIndicator color={dynamicColors.primary} size="large" />
+        <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.safe}>
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.primary} size="large" />
 
-          <Text
-            style={[
-              styles.loadingText,
-              {
-                color: settings.ui.textColor,
-              },
-            ]}
-          >
-            Carregando...
-          </Text>
-        </View>
+            <Text
+              style={[
+                styles.loadingText,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              Carregando...
+            </Text>
+          </View>
+        </SafeAreaView>
       </GradientBackground>
     );
   }
@@ -182,13 +173,18 @@ export default function GameScreen() {
     <GradientBackground settings={settings.background}>
       <StatusBar style="light" />
 
-      <SafeAreaView style={styles.safe}>
+      <SafeAreaView
+        edges={['top', 'right', 'bottom', 'left']}
+        style={styles.safe}
+        onTouchStart={handleUserActivity}
+        onStartShouldSetResponderCapture={handleStartShouldSetResponderCapture}
+      >
         {isActive && (
           <AttractScreen
             message={settings.totem.attractMessage}
             gameTitle={settings.branding.gameTitle}
             centerImageUri={settings.totem.attractCenterImageUri}
-            onDismiss={deactivate}
+            onDismiss={notifyActivity}
           />
         )}
 
@@ -199,10 +195,9 @@ export default function GameScreen() {
               style={({ pressed }) => [
                 styles.backBtn,
                 {
-                  backgroundColor: getBackButtonBackground(),
-                  borderColor: getBackButtonBorderColor(),
-                  borderRadius: Math.max(8, settings.ui.globalRadius ?? 10),
-                  opacity: pressed ? 0.72 : 1,
+                  backgroundColor: colors.primaryGlow,
+                  borderColor: colors.primaryMedium,
+                  opacity: pressed ? 0.7 : 1,
                 },
               ]}
             >
@@ -210,7 +205,7 @@ export default function GameScreen() {
                 style={[
                   styles.backBtnText,
                   {
-                    color: dynamicColors.primary,
+                    color: colors.primary,
                   },
                 ]}
               >
@@ -223,7 +218,7 @@ export default function GameScreen() {
               style={[
                 styles.themeName,
                 {
-                  color: settings.ui.textColor,
+                  color: colors.text,
                 },
               ]}
             >
@@ -248,6 +243,8 @@ export default function GameScreen() {
               isLandscape && styles.boardScrollLandscape,
             ]}
             showsVerticalScrollIndicator={false}
+            onScrollBeginDrag={handleUserActivity}
+            onMomentumScrollBegin={handleUserActivity}
           >
             {isLandscape && (
               <View style={styles.landscapeStats}>
@@ -263,7 +260,7 @@ export default function GameScreen() {
               cards={game.cards}
               columns={boardColumns}
               cardStyle={cardStyle}
-              onFlip={game.flipCard}
+              onFlip={handleFlipCard}
             />
           </ScrollView>
 
@@ -272,12 +269,8 @@ export default function GameScreen() {
               styles.footer,
               isLandscape && styles.footerLandscape,
               {
-                borderTopColor: settings.ui.useGlassmorphism
-                  ? dynamicColors.primaryMedium
-                  : settings.ui.borderColor,
-                backgroundColor: settings.ui.useGlassmorphism
-                  ? dynamicColors.primaryGlow
-                  : settings.ui.surfaceColor,
+                borderTopColor: colors.border,
+                backgroundColor: colors.surface,
               },
             ]}
           >
@@ -304,10 +297,10 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
   },
-  safe: {
+  container: {
     flex: 1,
   },
   flex: {
@@ -337,7 +330,8 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderWidth: 1.5,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   backBtnText: {
     fontSize: 15,
@@ -355,8 +349,6 @@ const styles = StyleSheet.create({
   boardScroll: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    flexGrow: 1,
-    justifyContent: 'center',
   },
   boardScrollLandscape: {
     paddingHorizontal: 8,

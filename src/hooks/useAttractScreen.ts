@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseAttractScreenParams {
-  enabled:        boolean;
+  enabled: boolean;
   timeoutSeconds: number;
-  onActivate?:    () => void;
-  onDeactivate?:  () => void;
+  onActivate?: () => void;
+  onDeactivate?: () => void;
 }
 
 export function useAttractScreen({
@@ -13,7 +13,7 @@ export function useAttractScreen({
   onActivate,
   onDeactivate,
 }: UseAttractScreenParams) {
-  const [isActive, setIsActive]     = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = useCallback(() => {
@@ -24,29 +24,59 @@ export function useAttractScreen({
   }, []);
 
   const activate = useCallback(() => {
+    timeoutRef.current = null;
     setIsActive(true);
     onActivate?.();
   }, [onActivate]);
 
-  const deactivate = useCallback(() => {
-    setIsActive(false);
-    onDeactivate?.();
-  }, [onDeactivate]);
-
   const resetTimer = useCallback(() => {
-    if (!enabled) return;
     clearTimer();
-    timeoutRef.current = setTimeout(activate, timeoutSeconds * 1000);
-  }, [enabled, timeoutSeconds, clearTimer, activate]);
 
-  useEffect(() => {
-    if (!enabled) {
-      clearTimer();
+    if (!enabled || timeoutSeconds <= 0) {
       return;
     }
-    resetTimer();
-    return () => clearTimer();
-  }, [enabled, resetTimer, clearTimer]);
 
-  return { isActive, deactivate, resetTimer };
+    timeoutRef.current = setTimeout(activate, timeoutSeconds * 1000);
+  }, [activate, clearTimer, enabled, timeoutSeconds]);
+
+  const deactivate = useCallback(() => {
+    if (isActive) {
+      setIsActive(false);
+      onDeactivate?.();
+    }
+  }, [isActive, onDeactivate]);
+
+  /**
+   * Deve ser chamado sempre que o usuário interagir com a tela.
+   * Isso impede que a tela de atração apareça durante o uso real do app.
+   */
+  const notifyActivity = useCallback(() => {
+    if (isActive) {
+      setIsActive(false);
+      onDeactivate?.();
+    }
+
+    resetTimer();
+  }, [isActive, onDeactivate, resetTimer]);
+
+  useEffect(() => {
+    if (!enabled || timeoutSeconds <= 0) {
+      clearTimer();
+      setIsActive(false);
+      return;
+    }
+
+    resetTimer();
+
+    return () => clearTimer();
+  }, [clearTimer, enabled, resetTimer, timeoutSeconds]);
+
+  return {
+    isActive,
+    activate,
+    deactivate,
+    resetTimer,
+    clearTimer,
+    notifyActivity,
+  };
 }

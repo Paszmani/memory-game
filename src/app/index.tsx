@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 
 import {
   Animated,
@@ -12,27 +12,27 @@ import {
   useWindowDimensions,
 } from 'react-native';
 
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { AttractScreen } from '@/components/game/AttractScreen';
 import { AppButton } from '@/components/ui/AppButton';
 import { GradientBackground } from '@/components/ui/GradientBackground';
+import { colors as baseColors } from '@/constants/colors';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAttractScreen } from '@/hooks/useAttractScreen';
 import { useColors } from '@/hooks/useColors';
 import { useThemeManager } from '@/hooks/useThemeManager';
-import { useTypography } from '@/hooks/useTypography';
-import type { CustomTheme } from '@/types/theme';
+import { CustomTheme } from '@/types/theme';
 
-interface NavButtonProps {
+interface NavBtnProps {
   icon: string;
   label: string;
   onPress: () => void;
 }
 
-function NavButton({ icon, label, onPress }: NavButtonProps) {
+function NavButton({ icon, label, onPress }: NavBtnProps) {
   const scale = useRef(new Animated.Value(1)).current;
-
   const colors = useColors();
-  const typography = useTypography();
 
   function onIn() {
     Animated.spring(scale, {
@@ -53,7 +53,7 @@ function NavButton({ icon, label, onPress }: NavButtonProps) {
   return (
     <Animated.View
       style={[
-        styles.navButtonWrap,
+        styles.navBtnWrap,
         {
           transform: [{ scale }],
         },
@@ -64,7 +64,7 @@ function NavButton({ icon, label, onPress }: NavButtonProps) {
         onPressIn={onIn}
         onPressOut={onOut}
         style={[
-          styles.navButton,
+          styles.navBtn,
           {
             backgroundColor: colors.surface,
             borderColor: colors.border,
@@ -85,7 +85,6 @@ function NavButton({ icon, label, onPress }: NavButtonProps) {
         <Text
           style={[
             styles.navLabel,
-            typography.bold,
             {
               color: colors.textSecondary,
             },
@@ -103,12 +102,11 @@ export default function HomeScreen() {
   const { themes } = useThemeManager();
   const { width, height } = useWindowDimensions();
 
-  const colors = useColors();
-  const typography = useTypography();
-
   const [selectedId, setSelectedId] = useState<string | undefined>();
 
-  const { isActive, deactivate, resetTimer } = useAttractScreen({
+  const colors = useColors();
+
+  const { isActive, notifyActivity } = useAttractScreen({
     enabled: settings.totem.attractScreenEnabled,
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
@@ -116,37 +114,42 @@ export default function HomeScreen() {
   const isWide = width >= 600;
   const innerMax = Math.min(width, 520);
 
+  const handleActivity = useCallback(() => {
+    notifyActivity();
+  }, [notifyActivity]);
+
+  const handleStartShouldSetResponderCapture = useCallback(() => {
+    notifyActivity();
+    return false;
+  }, [notifyActivity]);
+
   function handlePlay() {
-    resetTimer();
+    notifyActivity();
 
     const themeId = selectedId ?? themes[0]?.id;
 
-    router.push(
-      themeId
-        ? {
-            pathname: '/game',
-            params: {
-              themeId,
-            },
-          }
-        : '/game',
-    );
+    router.push(themeId ? `/game?themeId=${themeId}` : '/game');
   }
 
   const { branding, background, totem } = settings;
 
   return (
     <GradientBackground settings={background}>
-      {isActive && (
-        <AttractScreen
-          message={totem.attractMessage}
-          gameTitle={totem.showBranding ? branding.gameTitle : ''}
-          centerImageUri={totem.attractCenterImageUri}
-          onDismiss={deactivate}
-        />
-      )}
+      <SafeAreaView
+        edges={['top', 'right', 'bottom', 'left']}
+        style={styles.safe}
+        onTouchStart={handleActivity}
+        onStartShouldSetResponderCapture={handleStartShouldSetResponderCapture}
+      >
+        {isActive && (
+          <AttractScreen
+            message={totem.attractMessage}
+            gameTitle={totem.showBranding ? branding.gameTitle : ''}
+            centerImageUri={totem.attractCenterImageUri}
+            onDismiss={notifyActivity}
+          />
+        )}
 
-      <View style={styles.flex}>
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
@@ -157,8 +160,6 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bounces
-          overScrollMode="always"
         >
           <View style={[styles.inner, { maxWidth: innerMax }]}>
             <View style={styles.hero}>
@@ -171,7 +172,6 @@ export default function HomeScreen() {
               <Text
                 style={[
                   styles.title,
-                  typography.black,
                   {
                     color: colors.primary,
                   },
@@ -183,7 +183,6 @@ export default function HomeScreen() {
               <Text
                 style={[
                   styles.subtitle,
-                  typography.regular,
                   {
                     color: colors.textSecondary,
                   },
@@ -198,7 +197,6 @@ export default function HomeScreen() {
                 <Text
                   style={[
                     styles.sectionLabel,
-                    typography.bold,
                     {
                       color: colors.textMuted,
                     },
@@ -218,7 +216,7 @@ export default function HomeScreen() {
                       theme={theme}
                       isSelected={(selectedId ?? themes[0]?.id) === theme.id}
                       onSelect={() => {
-                        resetTimer();
+                        notifyActivity();
                         setSelectedId(theme.id);
                       }}
                     />
@@ -234,7 +232,7 @@ export default function HomeScreen() {
                 icon="🎨"
                 label="Personalizar"
                 onPress={() => {
-                  resetTimer();
+                  notifyActivity();
                   router.push('/customize');
                 }}
               />
@@ -243,7 +241,7 @@ export default function HomeScreen() {
                 icon="🏆"
                 label="Recordes"
                 onPress={() => {
-                  resetTimer();
+                  notifyActivity();
                   router.push('/records');
                 }}
               />
@@ -252,14 +250,14 @@ export default function HomeScreen() {
                 icon="⚙️"
                 label="Config"
                 onPress={() => {
-                  resetTimer();
+                  notifyActivity();
                   router.push('/settings');
                 }}
               />
             </View>
           </View>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </GradientBackground>
   );
 }
@@ -274,7 +272,6 @@ function ThemeChip({
   onSelect: () => void;
 }) {
   const colors = useColors();
-  const typography = useTypography();
 
   return (
     <Pressable
@@ -296,7 +293,6 @@ function ThemeChip({
       <Text
         style={[
           styles.chipLabel,
-          typography.semiBold,
           {
             color: isSelected ? colors.primary : colors.textSecondary,
           },
@@ -309,7 +305,7 @@ function ThemeChip({
 }
 
 const styles = StyleSheet.create({
-  flex: {
+  safe: {
     flex: 1,
   },
   scroll: {
@@ -371,15 +367,16 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     fontSize: 15,
+    fontWeight: '600',
   },
   navRow: {
     flexDirection: 'row',
     gap: 10,
   },
-  navButtonWrap: {
+  navBtnWrap: {
     flex: 1,
   },
-  navButton: {
+  navBtn: {
     alignItems: 'center',
     gap: 8,
     borderRadius: 18,
@@ -391,5 +388,6 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 12,
+    fontWeight: '700',
   },
 });
