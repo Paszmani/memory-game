@@ -1,47 +1,109 @@
 import React, { memo, useState } from 'react';
+
 import { Alert } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
-import { pickImageFromLibrary } from '@/services/imageService';
+import {
+  pickAttractImage,
+  pickBackgroundImage,
+  pickCardBackImage,
+  pickCardFrontImage,
+  pickImageFromLibrary,
+  pickLogoImage,
+} from '@/services/imageService';
+
+type ImagePickerMode =
+  | 'generic'
+  | 'card-front'
+  | 'card-back'
+  | 'background'
+  | 'attract'
+  | 'logo';
 
 interface Props {
   onImagePicked: (uri: string) => void;
-  label?:        string;
+  label?: string;
+  mode?: ImagePickerMode;
 }
 
-export const ImagePickerButton = memo(({
-  onImagePicked,
-  label = 'Adicionar imagem',
-}: Props) => {
-  const [isLoading, setIsLoading] = useState(false);
+async function pickByMode(mode: ImagePickerMode) {
+  switch (mode) {
+    case 'card-front':
+      return pickCardFrontImage();
 
-  async function handlePress() {
-    setIsLoading(true);
-    try {
-      const uri = await pickImageFromLibrary();
+    case 'card-back':
+      return pickCardBackImage();
 
-      if (!uri) {
-        Alert.alert(
-          'Imagem não selecionada',
-          'Permita o acesso à galeria e tente novamente.',
-        );
+    case 'background': {
+      const result = await pickBackgroundImage();
+      return result?.uri ?? null;
+    }
+
+    case 'attract':
+      return pickAttractImage();
+
+    case 'logo':
+      return pickLogoImage();
+
+    case 'generic':
+    default:
+      return pickImageFromLibrary({
+        quality: 1,
+        allowsEditing: false,
+        persistOnWeb: true,
+        storagePrefix: 'generic',
+      });
+  }
+}
+
+export const ImagePickerButton = memo(
+  ({
+    onImagePicked,
+    label = 'Adicionar imagem',
+    mode = 'generic',
+  }: Props) => {
+    const [isPicking, setIsPicking] = useState(false);
+
+    async function handlePress() {
+      if (isPicking) {
         return;
       }
 
-      onImagePicked(uri);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+      setIsPicking(true);
 
-  return (
-    <AppButton
-      title={isLoading ? 'Carregando...' : label}
-      onPress={handlePress}
-      variant="secondary"
-      disabled={isLoading}
-    />
-  );
-});
+      try {
+        const uri = await pickByMode(mode);
+
+        if (!uri) {
+          Alert.alert(
+            'Imagem não selecionada',
+            'Permita o acesso à galeria ou escolha uma imagem válida.',
+          );
+
+          return;
+        }
+
+        onImagePicked(uri);
+      } catch (error) {
+        Alert.alert(
+          'Erro ao selecionar imagem',
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar a imagem.',
+        );
+      } finally {
+        setIsPicking(false);
+      }
+    }
+
+    return (
+      <AppButton
+        title={isPicking ? 'Carregando...' : label}
+        onPress={handlePress}
+        disabled={isPicking}
+      />
+    );
+  },
+);
 
 ImagePickerButton.displayName = 'ImagePickerButton';

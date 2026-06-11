@@ -265,7 +265,8 @@ export const ThemeForm = memo(({ onSubmit, initialTheme, onCancel }: Props) => {
         </View>
 
         <ImagePickerButton
-          label="📷 Adicionar imagem"
+          label="Adicionar imagem"
+          mode="card-front"
           onImagePicked={addImageCard}
         />
       </View>

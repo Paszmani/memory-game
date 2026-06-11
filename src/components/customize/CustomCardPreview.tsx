@@ -1,81 +1,82 @@
 import React, { memo } from 'react';
+
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+
 import { Image } from 'expo-image';
 
 import { colors } from '@/constants/colors';
-import { CustomThemeCard } from '@/types/theme';
+import { useResolvedImageUri } from '@/hooks/useResolvedImageUri';
+import type { CustomThemeCard } from '@/types/theme';
 
 interface Props {
-  card:     CustomThemeCard;
+  card: CustomThemeCard;
   onRemove: () => void;
 }
 
-export const CustomCardPreview = memo(({ card, onRemove }: Props) => (
-  <Pressable
-    onLongPress={onRemove}
-    style={({ pressed }) => [styles.container, pressed && styles.pressed]}
-    accessibilityHint="Segure para remover"
-  >
-    <View style={styles.media}>
-      {card.imageUri ? (
+export const CustomCardPreview = memo(({ card, onRemove }: Props) => {
+  const resolvedImageUri = useResolvedImageUri(card.imageUri);
+
+  return (
+    <View style={styles.card}>
+      <Pressable onPress={onRemove} style={styles.removeButton}>
+        <Text style={styles.removeText}>×</Text>
+      </Pressable>
+
+      {resolvedImageUri ? (
         <Image
-          source={{ uri: card.imageUri }}
+          source={{ uri: resolvedImageUri }}
           style={styles.image}
           contentFit="cover"
+          contentPosition="center"
+          cachePolicy="memory-disk"
+          transition={0}
         />
       ) : (
-        <Text style={styles.emoji}>{card.emoji}</Text>
+        <Text style={styles.emoji}>{card.emoji ?? card.label}</Text>
       )}
     </View>
-
-    <Text style={styles.label} numberOfLines={1}>{card.label}</Text>
-    <Text style={styles.hint}>Segure p/ remover</Text>
-  </Pressable>
-));
+  );
+});
 
 CustomCardPreview.displayName = 'CustomCardPreview';
 
 const styles = StyleSheet.create({
-  container: {
-    width:           '30%',
-    minWidth:        95,
+  card: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
     backgroundColor: colors.surface,
-    borderRadius:    16,
-    padding:         10,
-    alignItems:      'center',
-    gap:             6,
-    borderWidth:     1,
-    borderColor:     colors.border,
-  },
-  pressed: {
-    opacity:   0.75,
-    transform: [{ scale: 0.97 }],
-  },
-  media: {
-    width:           62,
-    height:          62,
-    borderRadius:    12,
-    overflow:        'hidden',
-    backgroundColor: colors.surfaceLight,
-    alignItems:      'center',
-    justifyContent:  'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   image: {
-    width:  '100%',
+    width: '100%',
     height: '100%',
   },
   emoji: {
-    fontSize: 38,
-  },
-  label: {
-    color:      colors.text,
-    fontWeight: '700',
-    fontSize:   13,
-    textAlign:  'center',
-  },
-  hint: {
-    color:     colors.textMuted,
-    fontSize:  10,
+    color: colors.text,
+    fontSize: 30,
     textAlign: 'center',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    zIndex: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18,
   },
 });

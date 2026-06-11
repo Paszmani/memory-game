@@ -6,6 +6,7 @@ import { CARD_BORDER_RADIUS } from '@/constants/defaultSettings';
 import { colors }             from '@/constants/colors';
 import { AnimationSettings, CardStyleSettings } from '@/types/settings';
 import { MemoryCard as CardType }               from '@/types/game';
+import { useResolvedImageUri } from '@/hooks/useResolvedImageUri';
 
 interface Props {
   card:        CardType;
@@ -136,33 +137,82 @@ export const MemoryCard = memo(({ card, onPress, cardStyle, animSettings, size }
 MemoryCard.displayName = 'MemoryCard';
 
 /** Verso da carta — suporta cor, padrão ou imagem */
-function BackFace({ cardStyle, size }: { cardStyle: CardStyleSettings; size: number }) {
-  if (cardStyle.backPattern === 'image' && cardStyle.backImageUri) {
-    return (
-      <Image
-        source={{ uri: cardStyle.backImageUri }}
-        style={{ width: size - 8, height: size - 8 }}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-      />
-    );
-  }
-  return <Text style={styles.qMark}>?</Text>;
-}
+function BackFace({
+  cardStyle,
+  size,
+}: {
+  cardStyle: CardStyleSettings;
+  size: number;
+}) {
+  const resolvedBackImageUri = useResolvedImageUri(cardStyle.backImageUri);
 
-function FrontContent({ card, emojiSize, size }: { card: CardType; emojiSize: number; size: number }) {
-  if (card.imageUri) {
+  if (cardStyle.backPattern === 'image' && resolvedBackImageUri) {
     return (
       <Image
-        source={{ uri: card.imageUri }}
-        style={{ width: size - 8, height: size - 8, borderRadius: 4 }}
+        source={{ uri: resolvedBackImageUri }}
+        style={styles.fullImage}
         contentFit="cover"
+        contentPosition="center"
         cachePolicy="memory-disk"
+        priority="high"
+        recyclingKey={resolvedBackImageUri}
         transition={0}
       />
     );
   }
-  return <Text style={{ fontSize: emojiSize, textAlign: 'center' }}>{card.emoji}</Text>;
+
+  return (
+    <Text
+      style={[
+        styles.qMark,
+        {
+          fontSize: Math.max(22, Math.round(size * 0.25)),
+          color: cardStyle.backPatternColor,
+        },
+      ]}
+    >
+      {cardStyle.backPatternEmoji || '?'}
+    </Text>
+  );
+}
+
+function FrontContent({
+  card,
+  emojiSize,
+}: {
+  card: CardType;
+  emojiSize: number;
+  size: number;
+}) {
+  const resolvedImageUri = useResolvedImageUri(card.imageUri);
+
+  if (resolvedImageUri) {
+    return (
+      <Image
+        source={{ uri: resolvedImageUri }}
+        style={styles.fullImage}
+        contentFit="cover"
+        contentPosition="center"
+        cachePolicy="memory-disk"
+        priority="high"
+        recyclingKey={resolvedImageUri}
+        transition={0}
+      />
+    );
+  }
+
+  return (
+    <Text
+      style={[
+        styles.emoji,
+        {
+          fontSize: emojiSize,
+        },
+      ]}
+    >
+      {card.emoji ?? card.label}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -170,5 +220,7 @@ const styles = StyleSheet.create({
   relative: { position: 'relative' },
   abs:      { position: 'absolute', top: 0, left: 0 },
   face:     { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  fullImage: { width: '100%', height: '100%' },
   qMark:    { fontSize: 22, fontWeight: '900', color: colors.textMuted },
+  emoji:    { fontWeight: '900', textAlign: 'center', color: colors.text },
 });

@@ -1,17 +1,29 @@
 import * as ImagePicker from 'expo-image-picker';
+
 import { Dimensions, Platform } from 'react-native';
 
+import { saveWebImageFromUri } from '@/services/webImageStorage';
+
 export interface ScreenInfo {
-  width:         number;
-  height:        number;
-  aspectRatio:   string;
-  recommendedW:  number;
-  recommendedH:  number;
-  description:   string;
+  width: number;
+  height: number;
+  aspectRatio: string;
+  recommendedW: number;
+  recommendedH: number;
+  description: string;
+}
+
+interface PickOptions {
+  aspect?: [number, number];
+  quality?: number;
+  allowsEditing?: boolean;
+  persistOnWeb?: boolean;
+  storagePrefix?: string;
 }
 
 export function getScreenInfo(): ScreenInfo {
   const { width, height } = Dimensions.get('screen');
+
   const pw = Math.min(width, height);
   const ph = Math.max(width, height);
 
@@ -19,96 +31,144 @@ export function getScreenInfo(): ScreenInfo {
     return b === 0 ? a : gcd(b, a % b);
   }
 
-  const d = gcd(pw, ph);
-  const rW = pw / d;
-  const rH = ph / d;
   const simplify = (w: number, h: number) => {
-    const d2 = gcd(w, h);
-    return `${w / d2}:${h / d2}`;
+    const divisor = gcd(w, h);
+
+    return `${w / divisor}:${h / divisor}`;
   };
 
   const ratio = simplify(pw, ph);
 
-  // Resolução recomendada para fundo (mínimo Full HD)
-  const scale     = Math.max(1, Math.ceil(1920 / ph));
-  const recW      = Math.round(pw * scale);
-  const recH      = Math.round(ph * scale);
+  const scale = Math.max(1, Math.ceil(1920 / ph));
+  const recommendedW = Math.round(pw * scale);
+  const recommendedH = Math.round(ph * scale);
 
   const description = `Tela: ${pw}×${ph}px — Proporção ${ratio}
-Imagem recomendada: ${recW}×${recH}px (${ratio})`;
+Imagem recomendada: ${recommendedW}×${recommendedH}px (${ratio})`;
 
-  return { width: pw, height: ph, aspectRatio: ratio, recommendedW: recW, recommendedH: recH, description };
-}
-
-async function blobToDataUrl(uri: string): Promise<string> {
-  if (!uri.startsWith('blob:')) return uri;
-  const res  = await fetch(uri);
-  const blob = await res.blob();
-  return new Promise<string>((resolve, reject) => {
-    const reader  = new FileReader();
-    reader.onload  = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-interface PickOptions {
-  aspect?:  [number, number];
-  quality?: number;
+  return {
+    width: pw,
+    height: ph,
+    aspectRatio: ratio,
+    recommendedW,
+    recommendedH,
+    description,
+  };
 }
 
 export async function pickImageFromLibrary(
-  opts: PickOptions = { quality: 1 },
+  opts: PickOptions = {},
 ): Promise<string | null> {
-  const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!granted) return null;
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  if (!permission.granted) {
+    return null;
+  }
 
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes:    ['images'],
-    allowsEditing: false,
-    aspect:        opts.aspect,
-    quality:       opts.quality,
-    base64:        Platform.OS === 'web',
+    mediaTypes: ['images'],
+
+    /*
+     * Importante:
+     * Para imagens de carta, o ideal é evitar crop/compressão.
+     */
+    allowsEditing: opts.allowsEditing ?? false,
+    aspect: opts.aspect,
+    quality: opts.quality ?? 1,
+
+    /*
+     * Na Web, não usamos base64 para salvar no tema.
+     * O arquivo será persistido no IndexedDB e o tema salvará só uma referência.
+     */
+    base64: false,
   });
 
-  if (result.canceled) return null;
-  const asset = result.assets[0];
-  if (!asset) return null;
+  if (result.canceled) {
+    return null;
+  }
 
-  if (Platform.OS === 'web') {
-    if (asset.base64) return `data:image/jpeg;base64,${asset.base64}`;
-    return blobToDataUrl(asset.uri);
+  const asset = result.assets[0];
+
+  if (!asset?.uri) {
+    return null;
+  }
+
+  if (Platform.OS === 'web' && opts.persistOnWeb !== false) {
+    return saveWebImageFromUri(asset.uri, opts.storagePrefix ?? 'image');
   }
 
   return asset.uri;
 }
 
-/** Escolhe imagem de fundo respeitando a proporção da tela */
-export async function pickBackgroundImage(): Promise<{ uri: string; info: ScreenInfo } | null> {
-  const info = getScreenInfo();
-
-  // Aspect ratio inteiro para o ImagePicker
-  const { width, height } = Dimensions.get('screen');
-  const pw = Math.min(width, height);
-  const ph = Math.max(width, height);
-
-  const uri = await pickImageFromLibrary({ aspect: [pw, ph], quality: 1 });
-  if (!uri) return null;
-
-  return { uri, info };
+export async function pickCardFrontImage(): Promise<string | null> {
+  return pickImageFromLibrary({
+    quality: 1,
+    allowsEditing: false,
+    persistOnWeb: true,
+    storagePrefix: 'card_front',
+  });
 }
 
 export async function pickCardBackImage(): Promise<string | null> {
-  return pickImageFromLibrary({ aspect: [1, 1], quality: 1 });
+  return pickImageFromLibrary({
+    aspect: [1, 1],
+    quality: 1,
+    allowsEditing: true,
+    persistOnWeb: true,
+    storagePrefix: 'card_back',
+  });
+}
+
+export async function pickBackgroundImage(): Promise<{
+  uri: string;
+  info: ScreenInfo;
+} | null> {
+  const info = getScreenInfo();
+
+  const { width, height } = Dimensions.get('screen');
+
+  const pw = Math.min(width, height);
+  const ph = Math.max(width, height);
+
+  const uri = await pickImageFromLibrary({
+    aspect: [pw, ph],
+    quality: 1,
+    allowsEditing: true,
+    persistOnWeb: true,
+    storagePrefix: 'background',
+  });
+
+  if (!uri) {
+    return null;
+  }
+
+  return {
+    uri,
+    info,
+  };
 }
 
 export async function pickAttractImage(): Promise<string | null> {
   const { width, height } = Dimensions.get('screen');
+
   const pw = Math.min(width, height);
   const ph = Math.max(width, height);
-  return pickImageFromLibrary({ aspect: [pw, ph], quality: 1 });
+
+  return pickImageFromLibrary({
+    aspect: [pw, ph],
+    quality: 1,
+    allowsEditing: true,
+    persistOnWeb: true,
+    storagePrefix: 'attract',
+  });
 }
 
 export async function pickLogoImage(): Promise<string | null> {
-  return pickImageFromLibrary({ aspect: [1, 1], quality: 1 });
+  return pickImageFromLibrary({
+    aspect: [1, 1],
+    quality: 1,
+    allowsEditing: true,
+    persistOnWeb: true,
+    storagePrefix: 'logo',
+  });
 }
