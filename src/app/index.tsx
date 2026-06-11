@@ -173,7 +173,7 @@ export default function HomeScreen() {
                 style={[
                   styles.title,
                   {
-                    color: colors.primary,
+                    color: "#FFFFFF",
                   },
                 ]}
               >
@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
     fontSize: 76,
   },
   title: {
+    color: "#FFFFFF",
     fontSize: 44,
     fontWeight: '900',
     textAlign: 'center',
