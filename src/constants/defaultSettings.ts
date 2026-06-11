@@ -1,4 +1,5 @@
 import { DEFAULT_ASSETS } from '@/constants/defaultAssets';
+
 import type {
   AppSettings,
   CardShape,
@@ -32,7 +33,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
     cardSize: 'medium',
 
     backColor: '#061A3D',
-    backPattern: 'solid',
+
+    /*
+     * Verso padrão das cartas:
+     * usa a imagem assets/default/logo-compro-card.png
+     */
+    backPattern: 'image',
+    backImageUri: DEFAULT_ASSETS.logo,
     backPatternEmoji: '',
     backPatternColor: '#1E5AA8',
 
