@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 
 import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
@@ -38,6 +38,8 @@ const FONT_CSS_FAMILY: Record<FontFamilyOption, string> = {
   mono: '"Courier New", Courier, monospace',
 };
 
+const useWebLayoutEffect = Platform.OS === 'web' ? useLayoutEffect : useEffect;
+
 function hexToRgba(hex: string, opacity: number) {
   const clean = hex.replace('#', '');
 
@@ -46,6 +48,134 @@ function hexToRgba(hex: string, opacity: number) {
   const b = parseInt(clean.slice(4, 6), 16) || 0;
 
   return `rgba(${r},${g},${b},${opacity})`;
+}
+
+function ensureMeta(name: string, content: string) {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    return;
+  }
+
+  let element = document.querySelector(`meta[name="${name}"]`);
+
+  if (!element) {
+    element = document.createElement('meta');
+    element.setAttribute('name', name);
+    document.head.appendChild(element);
+  }
+
+  element.setAttribute('content', content);
+}
+
+function ensureStyle(id: string, css: string) {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    return;
+  }
+
+  let style = document.getElementById(id) as HTMLStyleElement | null;
+
+  if (!style) {
+    style = document.createElement('style');
+    style.id = id;
+    document.head.appendChild(style);
+  }
+
+  style.textContent = css;
+}
+
+function useWebBootstrap() {
+  const [isReady, setIsReady] = useState(Platform.OS !== 'web');
+
+  useWebLayoutEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      setIsReady(true);
+      return;
+    }
+
+    ensureMeta(
+      'viewport',
+      'width=device-width,initial-scale=1,viewport-fit=cover',
+    );
+    ensureMeta('theme-color', base.background);
+    ensureMeta('mobile-web-app-capable', 'yes');
+    ensureMeta('apple-mobile-web-app-capable', 'yes');
+    ensureMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
+    ensureMeta('apple-mobile-web-app-title', 'Jogo da Memória');
+
+    let manifestLink = document.querySelector<HTMLLinkElement>(
+      'link[rel="manifest"]',
+    );
+
+    if (!manifestLink) {
+      manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      document.head.appendChild(manifestLink);
+    }
+
+    manifestLink.href = './manifest.json';
+
+    ensureStyle(
+      'memory-game-web-base-style',
+      `
+        html,
+        body,
+        #root {
+          width: 100%;
+          min-width: 100%;
+          min-height: 100%;
+          margin: 0;
+          padding: 0;
+          background: ${base.background};
+        }
+
+        html,
+        body {
+          overflow-x: hidden;
+          overflow-y: auto;
+          overscroll-behavior-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        body {
+          position: relative;
+        }
+
+        #root {
+          display: flex;
+          flex-direction: column;
+        }
+
+        #root > div {
+          min-height: 100vh;
+          min-height: 100dvh;
+        }
+
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        input,
+        textarea,
+        button,
+        select {
+          font: inherit;
+        }
+
+        ::-webkit-scrollbar {
+          display: none;
+        }
+      `,
+    );
+
+    document.body.style.backgroundColor = base.background;
+    document.documentElement.style.backgroundColor = base.background;
+
+    setIsReady(true);
+  }, []);
+
+  return isReady;
 }
 
 function WebThemeApplier() {
@@ -75,21 +205,16 @@ function WebThemeApplier() {
 
     const cssFamily = FONT_CSS_FAMILY[fontFamily] ?? FONT_CSS_FAMILY.system;
 
-    let styleEl = document.getElementById(
+    ensureStyle(
       'rn-font-override',
-    ) as HTMLStyleElement | null;
-
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'rn-font-override';
-      document.head.appendChild(styleEl);
-    }
-
-    styleEl.textContent = `
-      *, *::before, *::after {
-        font-family: ${cssFamily} !important;
-      }
-    `;
+      `
+        *,
+        *::before,
+        *::after {
+          font-family: ${cssFamily} !important;
+        }
+      `,
+    );
   }, [fontFamily]);
 
   useEffect(() => {
@@ -101,86 +226,11 @@ function WebThemeApplier() {
 
     root.style.setProperty('--primary', primaryColor);
     root.style.setProperty('--primary-glow', hexToRgba(primaryColor, 0.15));
+    root.style.setProperty('--primary-medium', hexToRgba(primaryColor, 0.3));
+    root.style.setProperty('--primary-strong', hexToRgba(primaryColor, 0.6));
   }, [primaryColor]);
 
   return null;
-}
-
-function useWebSetup() {
-  useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined') {
-      return;
-    }
-
-    const setMeta = (name: string, content: string) => {
-      let element = document.querySelector(`meta[name="${name}"]`);
-
-      if (!element) {
-        element = document.createElement('meta');
-        element.setAttribute('name', name);
-        document.head.appendChild(element);
-      }
-
-      element.setAttribute('content', content);
-    };
-
-    setMeta(
-      'viewport',
-      'width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no',
-    );
-    setMeta('theme-color', base.background);
-    setMeta('mobile-web-app-capable', 'yes');
-    setMeta('apple-mobile-web-app-capable', 'yes');
-    setMeta('apple-mobile-web-app-status-bar-style', 'black-translucent');
-    setMeta('apple-mobile-web-app-title', 'Jogo da Memória');
-
-    let manifestLink = document.querySelector<HTMLLinkElement>(
-      'link[rel="manifest"]',
-    );
-
-    if (!manifestLink) {
-      manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      document.head.appendChild(manifestLink);
-    }
-
-    manifestLink.href = './manifest.json';
-
-    if (!document.getElementById('memory-game-web-base-style')) {
-      const style = document.createElement('style');
-
-      style.id = 'memory-game-web-base-style';
-      style.textContent = `
-        html, body {
-          overflow: hidden;
-          overscroll-behavior: none;
-          background: ${base.background};
-          height: 100%;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        * {
-          -webkit-tap-highlight-color: transparent;
-          box-sizing: border-box;
-        }
-
-        ::-webkit-scrollbar {
-          display: none;
-        }
-      `;
-
-      document.head.appendChild(style);
-    }
-
-    document.body.style.backgroundColor = base.background;
-    document.documentElement.style.backgroundColor = base.background;
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('./sw.js', { scope: './' })
-        .catch((error) => console.warn('[SW]', error));
-    }
-  }, []);
 }
 
 function AppStack() {
@@ -248,7 +298,11 @@ function AppStack() {
 }
 
 export default function RootLayout() {
-  useWebSetup();
+  const isWebReady = useWebBootstrap();
+
+  if (!isWebReady) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
