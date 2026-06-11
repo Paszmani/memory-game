@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { useResolvedImageUri } from '@/hooks/useResolvedImageUri';
 import type { BackgroundSettings } from '@/types/settings';
 
 interface Props {
@@ -26,13 +25,10 @@ const GRADIENT_DIRECTIONS: Record<
   diagonal: 'to bottom right',
 };
 
-function buildWebStyle(
-  settings: BackgroundSettings,
-  resolvedImageUri?: string,
-): ViewStyle {
-  if (settings.type === 'image' && resolvedImageUri) {
+function buildWebStyle(settings: BackgroundSettings): ViewStyle {
+  if (settings.type === 'image' && settings.imageUri) {
     return {
-      backgroundImage: `linear-gradient(rgba(0,0,0,${settings.overlayOpacity}), rgba(0,0,0,${settings.overlayOpacity})), url("${resolvedImageUri}")`,
+      backgroundImage: `linear-gradient(rgba(0,0,0,${settings.overlayOpacity}), rgba(0,0,0,${settings.overlayOpacity})), url("${settings.imageUri}")`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
@@ -40,7 +36,8 @@ function buildWebStyle(
   }
 
   if (settings.type === 'gradient') {
-    const direction = GRADIENT_DIRECTIONS[settings.gradientDirection] ?? 'to bottom';
+    const direction =
+      GRADIENT_DIRECTIONS[settings.gradientDirection] ?? 'to bottom';
 
     return {
       background: `linear-gradient(${direction}, ${settings.gradientStart}, ${settings.gradientEnd})`,
@@ -62,16 +59,14 @@ function getNativeBackgroundColor(settings: BackgroundSettings) {
 
 export const GradientBackground = memo(
   ({ settings, children, style }: Props) => {
-    const resolvedImageUri = useResolvedImageUri(settings.imageUri);
-
     if (
       settings.type === 'image' &&
-      resolvedImageUri &&
+      settings.imageUri &&
       Platform.OS !== 'web'
     ) {
       return (
         <ImageBackground
-          source={{ uri: resolvedImageUri }}
+          source={{ uri: settings.imageUri }}
           style={[styles.container, style]}
           imageStyle={styles.image}
           resizeMode="cover"
@@ -92,7 +87,7 @@ export const GradientBackground = memo(
 
     const dynamicStyle =
       Platform.OS === 'web'
-        ? buildWebStyle(settings, resolvedImageUri)
+        ? buildWebStyle(settings)
         : {
             backgroundColor: getNativeBackgroundColor(settings),
           };

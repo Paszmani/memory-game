@@ -48,7 +48,8 @@
           "photosPermission": "O app precisa acessar suas fotos para personalizar o jogo."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

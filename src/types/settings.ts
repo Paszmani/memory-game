@@ -56,10 +56,10 @@ export interface CardStyleSettings {
   shape: CardShape;
 
   /**
-   * Controla o tamanho visual das cartas no jogo.
-   * O MemoryBoard usa esse valor para ajustar o tamanho e a distribuição.
+   * Opcional para não quebrar configurações antigas já salvas.
+   * O fallback é tratado no MemoryBoard.
    */
-  cardSize: CardSizeOption;
+  cardSize?: CardSizeOption;
 
   backColor: string;
   backPattern: CardBackPattern;
@@ -129,6 +129,8 @@ export interface BrandingSettings {
   gameSubtitle: string;
   logoUri?: string;
   accentEmoji: string;
+  finishTitle?: string;
+  finishMessage?: string;
 }
 
 export interface AppSettings {

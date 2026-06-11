@@ -1,24 +1,63 @@
-import { CustomTheme } from '@/types/theme';
+import { DEFAULT_ASSETS } from '@/constants/defaultAssets';
+import type { CustomTheme } from '@/types/theme';
 
 export const DEFAULT_THEME: CustomTheme = {
-  id: 'default-emojis',
-  name: 'Emojis Padrão',
-  description: 'Tema padrão com emojis variados',
+  id: 'default-compro-card',
+  name: 'Compro Card',
+  description: 'Tema padrão com cartões Compro Card.',
   isDefault: true,
-  createdAt: new Date(0).toISOString(),
-  updatedAt: new Date(0).toISOString(),
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
   cards: [
-    { id: 'cat',     label: 'Gato',       emoji: '🐱' },
-    { id: 'dog',     label: 'Cachorro',   emoji: '🐶' },
-    { id: 'fox',     label: 'Raposa',     emoji: '🦊' },
-    { id: 'panda',   label: 'Panda',      emoji: '🐼' },
-    { id: 'lion',    label: 'Leão',       emoji: '🦁' },
-    { id: 'monkey',  label: 'Macaco',     emoji: '🐵' },
-    { id: 'frog',    label: 'Sapo',       emoji: '🐸' },
-    { id: 'penguin', label: 'Pinguim',    emoji: '🐧' },
-    { id: 'pizza',   label: 'Pizza',      emoji: '🍕' },
-    { id: 'burger',  label: 'Hambúrguer', emoji: '🍔' },
-    { id: 'apple',   label: 'Maçã',       emoji: '🍎' },
-    { id: 'star',    label: 'Estrela',    emoji: '⭐' },
+    {
+      id: 'default-card-alimentacao-amor',
+      label: 'Alimentação Amor',
+      imageUri: DEFAULT_ASSETS.cards.alimentacaoAmor,
+    },
+    {
+      id: 'default-card-compras',
+      label: 'Compras',
+      imageUri: DEFAULT_ASSETS.cards.compras,
+    },
+    {
+      id: 'default-card-corporativo',
+      label: 'Corporativo',
+      imageUri: DEFAULT_ASSETS.cards.corporativo,
+    },
+    {
+      id: 'default-card-premiacao',
+      label: 'Premiação',
+      imageUri: DEFAULT_ASSETS.cards.premiacao,
+    },
+    {
+      id: 'default-card-saude',
+      label: 'Saúde',
+      imageUri: DEFAULT_ASSETS.cards.saude,
+    },
+    {
+      id: 'default-card-combustivel',
+      label: 'Combustível',
+      imageUri: DEFAULT_ASSETS.cards.combustivel,
+    },
+    {
+      id: 'default-card-amizade',
+      label: 'Amizade',
+      imageUri: DEFAULT_ASSETS.cards.amizade,
+    },
+    {
+      id: 'default-card-paz',
+      label: 'Paz',
+      imageUri: DEFAULT_ASSETS.cards.paz,
+    },
+    {
+      id: 'default-card-gratidao',
+      label: 'Gratidão',
+      imageUri: DEFAULT_ASSETS.cards.gratidao,
+    },
+    {
+      id: 'default-card-presente',
+      label: 'Presente',
+      imageUri: DEFAULT_ASSETS.cards.presente,
+    },
   ],
 };

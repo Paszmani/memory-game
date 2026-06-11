@@ -3,7 +3,6 @@ import React, { memo, useMemo } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { MemoryCard } from '@/components/game/MemoryCard';
-import { CARD_SIZE_SCALE } from '@/constants/defaultSettings';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { MemoryCard as CardType } from '@/types/game';
 import type { CardSizeOption, CardStyleSettings } from '@/types/settings';
@@ -29,22 +28,28 @@ const BASE_MAX_CARD_SIZE_PORTRAIT = 180;
 const BASE_MAX_CARD_SIZE_LANDSCAPE = 116;
 const BASE_MAX_CARD_SIZE_WEB = 148;
 
+const LOCAL_CARD_SIZE_SCALE: Record<CardSizeOption, number> = {
+  small: 0.82,
+  medium: 1,
+  large: 1.22,
+};
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getCardSizeOption(cardSize?: CardSizeOption): CardSizeOption {
-  if (cardSize === 'small' || cardSize === 'large') {
+function getCardSizeOption(cardSize?: string): CardSizeOption {
+  if (cardSize === 'small' || cardSize === 'medium' || cardSize === 'large') {
     return cardSize;
   }
 
   return 'medium';
 }
 
-function getCardSizeScale(cardSize?: CardSizeOption) {
+function getCardSizeScale(cardSize?: string) {
   const option = getCardSizeOption(cardSize);
 
-  return CARD_SIZE_SCALE[option] ?? CARD_SIZE_SCALE.medium;
+  return LOCAL_CARD_SIZE_SCALE[option] ?? LOCAL_CARD_SIZE_SCALE.medium;
 }
 
 function getAdjustedColumns({
@@ -55,7 +60,7 @@ function getAdjustedColumns({
 }: {
   preferredColumns: number;
   cardsCount: number;
-  cardSize?: CardSizeOption;
+  cardSize?: string;
   isLandscape: boolean;
 }) {
   const option = getCardSizeOption(cardSize);
