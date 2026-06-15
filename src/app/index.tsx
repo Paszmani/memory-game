@@ -113,7 +113,7 @@ export default function HomeScreen() {
 
   const isWide = width >= 600;
   const innerMax = Math.min(width, 520);
-
+  
   const handleActivity = useCallback(() => {
     notifyActivity();
   }, [notifyActivity]);
@@ -173,7 +173,7 @@ export default function HomeScreen() {
                 style={[
                   styles.title,
                   {
-                    color: "#FFFFFF",
+                    color: colors.primary,
                   },
                 ]}
               >
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     fontSize: 76,
   },
   title: {
-    color: "#FFFFFF",
+    color: baseColors.primary,
     fontSize: 44,
     fontWeight: '900',
     textAlign: 'center',

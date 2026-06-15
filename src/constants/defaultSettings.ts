@@ -1,5 +1,3 @@
-import { DEFAULT_ASSETS } from '@/constants/defaultAssets';
-
 import type {
   AppSettings,
   CardShape,
@@ -11,46 +9,38 @@ import type {
 export const DEFAULT_SETTINGS: AppSettings = {
   branding: {
     gameTitle: 'Jogo da Memória',
-    gameSubtitle: 'Encontre os pares',
-    logoUri: DEFAULT_ASSETS.logo,
+    gameSubtitle: 'GRUPO SB',
     accentEmoji: '',
     finishTitle: 'Parabéns!',
     finishMessage: 'Você completou o jogo!',
   },
 
   background: {
-    type: 'image',
-    solidColor: '#020B1F',
-    gradientStart: '#020B1F',
-    gradientEnd: '#0D47A1',
+    type: 'gradient',
+    solidColor: '#0A0A0A',
+    gradientStart: '#0A0A0A',
+    gradientEnd: '#1A1A0A',
     gradientDirection: 'vertical',
-    imageUri: DEFAULT_ASSETS.background,
-    overlayOpacity: 0,
+    overlayOpacity: 0.3,
   },
 
   cardStyle: {
     shape: 'rounded',
     cardSize: 'medium',
 
-    backColor: '#061A3D',
+    backColor: '#141414',
+    backPattern: 'solid',
+    backPatternEmoji: '⭐',
+    backPatternColor: '#2A2A2A',
 
-    /*
-     * Verso padrão das cartas:
-     * usa a imagem assets/default/logo-compro-card.png
-     */
-    backPattern: 'image',
-    backImageUri: DEFAULT_ASSETS.logo,
-    backPatternEmoji: '',
-    backPatternColor: '#1E5AA8',
+    frontColor: '#1E1E1E',
 
-    frontColor: '#082653',
-
-    borderColor: '#1E5AA8',
+    borderColor: '#FFD600',
     borderStyleType: 'normal',
     borderWidth: 2,
 
-    matchedColor: '#0D47A1',
-    matchedOpacity: 0.88,
+    matchedColor: '#FFFFFF',
+    matchedOpacity: 0.85,
 
     textColor: '#FFFFFF',
     emojiSizeScale: 1,
@@ -68,14 +58,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
 
   ui: {
-    primaryColor: '#0D47A1',
-    surfaceColor: '#061A3D',
-    borderColor: '#1E5AA8',
+    primaryColor: '#FFD600',
+    surfaceColor: '#141414',
+    borderColor: '#2A2A2A',
     textColor: '#FFFFFF',
     fontSize: 'medium',
     fontFamily: 'system',
     buttonStyle: 'filled',
-    globalRadius: 18,
+    globalRadius: 16,
     useGlassmorphism: false,
   },
 
@@ -85,7 +75,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     showTimer: true,
     showMoves: true,
     gridColumns: 4,
-    pairCount: 10,
+    pairCount: 8,
     showLabels: false,
     hintAfterSeconds: 0,
   },
@@ -94,7 +84,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     attractScreenEnabled: true,
     attractTimeoutSeconds: 30,
     attractMessage: 'Toque para jogar!',
-    attractCenterImageUri: DEFAULT_ASSETS.logo,
     autoResetAfterFinishSeconds: 15,
     kioskMode: false,
     showBranding: true,
