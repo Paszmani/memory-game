@@ -12,6 +12,13 @@ interface StoredImageRecord {
   createdAt: string;
 }
 
+export interface WebImageOptimizationOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  quality?: number;
+  mimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 const objectUrlCache = new Map<string, string>();
 
@@ -21,6 +28,10 @@ function isWeb() {
 
 function canUseIndexedDb() {
   return isWeb() && typeof indexedDB !== 'undefined';
+}
+
+function canUseCanvas() {
+  return isWeb() && typeof document !== 'undefined';
 }
 
 function createImageId(prefix = 'image') {
@@ -41,7 +52,7 @@ function openDb(): Promise<IDBDatabase> {
     return dbPromise;
   }
 
-  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+  dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
@@ -72,7 +83,7 @@ function transaction<T>(
 ): Promise<T> {
   return openDb().then(
     (db) =>
-      new Promise<T>((resolve, reject) => {
+      new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, mode);
         const store = tx.objectStore(STORE_NAME);
         const request = operation(store);
@@ -110,21 +121,120 @@ async function uriToBlob(uri: string): Promise<Blob> {
   return response.blob();
 }
 
+async function optimizeImageBlob(
+  blob: Blob,
+  options: WebImageOptimizationOptions = {},
+): Promise<Blob> {
+  const shouldOptimize =
+    !!options.maxWidth ||
+    !!options.maxHeight ||
+    !!options.mimeType ||
+    typeof options.quality === 'number';
+
+  if (!canUseCanvas() || !shouldOptimize || blob.type === 'image/gif') {
+    return blob;
+  }
+
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const image = document.createElement('img');
+
+    image.onload = () => {
+      try {
+        const sourceWidth = image.naturalWidth || image.width;
+        const sourceHeight = image.naturalHeight || image.height;
+
+        if (!sourceWidth || !sourceHeight) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(blob);
+          return;
+        }
+
+        const maxWidth = options.maxWidth ?? sourceWidth;
+        const maxHeight = options.maxHeight ?? sourceHeight;
+
+        const scale = Math.min(
+          1,
+          maxWidth / sourceWidth,
+          maxHeight / sourceHeight,
+        );
+
+        const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+        const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+        const outputType =
+          options.mimeType ??
+          (blob.type === 'image/png' ? 'image/png' : 'image/jpeg');
+
+        const shouldResize =
+          targetWidth !== sourceWidth || targetHeight !== sourceHeight;
+
+        if (!shouldResize && !options.mimeType && !options.quality) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(blob);
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          URL.revokeObjectURL(objectUrl);
+          resolve(blob);
+          return;
+        }
+
+        if (outputType === 'image/jpeg') {
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, targetWidth, targetHeight);
+        }
+
+        ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+        canvas.toBlob(
+          (optimizedBlob) => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(optimizedBlob ?? blob);
+          },
+          outputType,
+          outputType === 'image/png' ? undefined : options.quality ?? 0.86,
+        );
+      } catch {
+        URL.revokeObjectURL(objectUrl);
+        resolve(blob);
+      }
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(blob);
+    };
+
+    image.src = objectUrl;
+  });
+}
+
 export async function saveWebImageFromUri(
   uri: string,
   prefix = 'card',
+  options: WebImageOptimizationOptions = {},
 ): Promise<string> {
   if (!canUseIndexedDb()) {
     return uri;
   }
 
-  const blob = await uriToBlob(uri);
+  const originalBlob = await uriToBlob(uri);
+  const blob = await optimizeImageBlob(originalBlob, options);
+
   const id = createImageId(prefix);
 
   const record: StoredImageRecord = {
     id,
     blob,
-    mimeType: blob.type || 'image/jpeg',
+    mimeType: blob.type || originalBlob.type || 'image/jpeg',
     createdAt: new Date().toISOString(),
   };
 
@@ -147,15 +257,15 @@ export async function resolveWebImageUri(uri?: string | null): Promise<string | 
   }
 
   const id = getIndexedDbImageId(uri);
-
   const cached = objectUrlCache.get(id);
 
   if (cached) {
     return cached;
   }
 
-  const record = await transaction<StoredImageRecord | undefined>('readonly', (store) =>
-    store.get(id),
+  const record = await transaction<StoredImageRecord | undefined>(
+    'readonly',
+    (store) => store.get(id),
   );
 
   if (!record?.blob) {
@@ -163,7 +273,6 @@ export async function resolveWebImageUri(uri?: string | null): Promise<string | 
   }
 
   const objectUrl = URL.createObjectURL(record.blob);
-
   objectUrlCache.set(id, objectUrl);
 
   return objectUrl;

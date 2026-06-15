@@ -2,100 +2,73 @@ import { useMemo } from 'react';
 
 import { colors as base } from '@/constants/colors';
 import { useSettings } from '@/contexts/SettingsContext';
-import type { UISettings } from '@/types/settings';
-import {
-  getContrastColor,
-  hexToRgba,
-  isValidHexColor,
-  lerpColor,
-} from '@/utils/colorUtils';
 
-function safeHex(value: string | undefined, fallback: string) {
-  return value && isValidHexColor(value) ? value : fallback;
+function normalizeHex(value: string | undefined, fallback: string) {
+  if (!value) return fallback;
+
+  const raw = value.trim();
+
+  if (/^#[0-9A-Fa-f]{6}$/.test(raw)) {
+    return raw;
+  }
+
+  if (/^#[0-9A-Fa-f]{3}$/.test(raw)) {
+    const r = raw[1];
+    const g = raw[2];
+    const b = raw[3];
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return fallback;
 }
 
-export function makeDynamicColors(ui?: Partial<UISettings>) {
-  const primary = safeHex(ui?.primaryColor, base.primary);
-  const surface = safeHex(ui?.surfaceColor, base.surface);
-  const border = safeHex(ui?.borderColor, base.border);
-  const text = safeHex(ui?.textColor, base.text);
+function hexToRgba(hex: string | undefined, alpha: number, fallback = '#000000') {
+  const safeHex = normalizeHex(hex, fallback).replace('#', '');
 
-  const background = base.background;
+  const r = parseInt(safeHex.slice(0, 2), 16);
+  const g = parseInt(safeHex.slice(2, 4), 16);
+  const b = parseInt(safeHex.slice(4, 6), 16);
 
-  const primaryText = getContrastColor(primary);
-
-  const surfaceElevated = lerpColor(surface, '#FFFFFF', 0.06);
-  const surfaceLight = lerpColor(surface, '#FFFFFF', 0.12);
-
-  const textSecondary = lerpColor(text, background, 0.3);
-  const textMuted = lerpColor(text, background, 0.55);
-
-  const borderLight = lerpColor(border, '#FFFFFF', 0.16);
-
-  const primaryGlow = hexToRgba(primary, 0.18);
-  const primaryMedium = hexToRgba(primary, 0.32);
-  const primaryStrong = hexToRgba(primary, 0.62);
-
-  const primarySurface = lerpColor(surface, primary, 0.16);
-  const primarySurfaceStrong = lerpColor(surface, primary, 0.28);
-  const primaryBorder = lerpColor(border, primary, 0.62);
-
-  const selectedBackground = lerpColor(surface, primary, 0.22);
-  const selectedBorder = lerpColor(border, primary, 0.72);
-  const selectedText = primary;
-
-  const glass = hexToRgba(surface, 0.74);
-  const glassBorder = ui?.useGlassmorphism
-    ? hexToRgba(primary, 0.28)
-    : lerpColor(border, primary, 0.18);
-
-  return {
-    ...base,
-
-    background,
-
-    surface,
-    surfaceElevated,
-    surfaceLight,
-
-    border,
-    borderLight,
-
-    text,
-    textSecondary,
-    textMuted,
-
-    primary,
-    primaryDark: lerpColor(primary, '#000000', 0.14),
-    primaryText,
-    primaryGlow,
-    primaryMedium,
-    primaryStrong,
-
-    primarySurface,
-    primarySurfaceStrong,
-    primaryBorder,
-
-    selectedBackground,
-    selectedBorder,
-    selectedText,
-
-    buttonPrimaryBg: primary,
-    buttonPrimaryBorder: lerpColor(primary, '#FFFFFF', 0.18),
-    buttonPrimaryText: primaryText,
-
-    warning: primary,
-
-    glass,
-    glassBorder,
-    overlay: hexToRgba(background, 0.9),
-  };
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 export function useColors() {
   const { settings } = useSettings();
 
-  return useMemo(() => makeDynamicColors(settings.ui), [settings.ui]);
+  const primary = normalizeHex(settings.ui.primaryColor, base.primary);
+  const surface = normalizeHex(settings.ui.surfaceColor, base.surface);
+  const border = normalizeHex(settings.ui.borderColor, base.border);
+  const text = normalizeHex(settings.ui.textColor, base.text);
+
+  return useMemo(
+    () => ({
+      ...base,
+
+      primary,
+      surface,
+      surfaceElevated: surface,
+      border,
+      borderLight: border,
+      text,
+      textSecondary: hexToRgba(text, 0.78, base.text),
+      textMuted: hexToRgba(text, 0.48, base.text),
+
+      glass: hexToRgba(surface, 0.82, base.surface),
+      glassBorder: hexToRgba(primary, 0.25, base.primary),
+
+      primaryGlow: hexToRgba(primary, 0.15, base.primary),
+      primaryMedium: hexToRgba(primary, 0.3, base.primary),
+      primaryStrong: hexToRgba(primary, 0.6, base.primary),
+      primaryBorder: hexToRgba(primary, 0.35, base.primary),
+      primarySurface: hexToRgba(primary, 0.1, base.primary),
+      primarySurfaceStrong: hexToRgba(primary, 0.18, base.primary),
+
+      buttonPrimaryBg: primary,
+      buttonPrimaryBorder: primary,
+      buttonPrimaryText: '#0A0A0A',
+    }),
+    [primary, surface, border, text],
+  );
 }
 
 export { base as colors };

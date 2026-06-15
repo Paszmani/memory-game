@@ -11,8 +11,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
     gameTitle: 'Jogo da Memória',
     gameSubtitle: 'GRUPO SB',
     accentEmoji: '',
+    homeTitleColor: '#FFFFFF',
     finishTitle: 'Parabéns!',
     finishMessage: 'Você completou o jogo!',
+    finishIcon: '🏆',
+    finishTitleColor: '#FFD600',
   },
 
   background: {

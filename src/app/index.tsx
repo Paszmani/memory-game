@@ -23,6 +23,7 @@ import { useAttractScreen } from '@/hooks/useAttractScreen';
 import { useColors } from '@/hooks/useColors';
 import { useThemeManager } from '@/hooks/useThemeManager';
 import { CustomTheme } from '@/types/theme';
+import { useResolvedImageUri } from '@/hooks/useResolvedImageUri';
 
 interface NavBtnProps {
   icon: string;
@@ -132,6 +133,7 @@ export default function HomeScreen() {
   }
 
   const { branding, background, totem } = settings;
+  const resolvedLogoUri = useResolvedImageUri(branding.logoUri);
 
   return (
     <GradientBackground settings={background}>
@@ -163,17 +165,19 @@ export default function HomeScreen() {
         >
           <View style={[styles.inner, { maxWidth: innerMax }]}>
             <View style={styles.hero}>
-              {branding.logoUri ? (
-                <Image source={{ uri: branding.logoUri }} style={styles.logo} />
+              {resolvedLogoUri ? (
+                <Image source={{ uri: resolvedLogoUri }} style={styles.logo} />
               ) : (
-                <Text style={styles.logoEmoji}>{branding.accentEmoji}</Text>
+                <Text style={[styles.logoEmoji, { color: colors.primary }]}>
+                  {branding.accentEmoji}
+                </Text>
               )}
 
               <Text
                 style={[
                   styles.title,
                   {
-                    color: colors.primary,
+                    color: branding.homeTitleColor || '#FFFFFF',
                   },
                 ]}
               >

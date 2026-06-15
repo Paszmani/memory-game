@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 
 import { useColors } from '@/hooks/useColors';
 import { useTypography } from '@/hooks/useTypography';
+import { useResolvedImageUri } from '@/hooks/useResolvedImageUri';
 
 interface Props {
   message: string;
@@ -23,6 +24,7 @@ interface Props {
 export const AttractScreen = memo(
   ({ message, gameTitle, centerImageUri, onDismiss }: Props) => {
     const colors = useColors();
+    const resolvedCenterImageUri = useResolvedImageUri(centerImageUri);
     const typography = useTypography();
 
     const pulseAnim = useRef(new Animated.Value(1)).current;

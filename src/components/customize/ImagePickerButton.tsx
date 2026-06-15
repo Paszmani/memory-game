@@ -8,6 +8,7 @@ import {
   pickBackgroundImage,
   pickCardBackImage,
   pickCardFrontImage,
+  pickFinishIconImage,
   pickImageFromLibrary,
   pickLogoImage,
 } from '@/services/imageService';
@@ -18,7 +19,8 @@ type ImagePickerMode =
   | 'card-back'
   | 'background'
   | 'attract'
-  | 'logo';
+  | 'logo'
+  | 'finish-icon';
 
 interface Props {
   onImagePicked: (uri: string) => void;
@@ -45,13 +47,18 @@ async function pickByMode(mode: ImagePickerMode) {
     case 'logo':
       return pickLogoImage();
 
+    case 'finish-icon':
+      return pickFinishIconImage();
+
     case 'generic':
     default:
       return pickImageFromLibrary({
-        quality: 1,
+        quality: 0.88,
         allowsEditing: false,
         persistOnWeb: true,
         storagePrefix: 'generic',
+        maxWidth: 1400,
+        maxHeight: 1400,
       });
   }
 }
@@ -79,7 +86,6 @@ export const ImagePickerButton = memo(
             'Imagem não selecionada',
             'Permita o acesso à galeria ou escolha uma imagem válida.',
           );
-
           return;
         }
 
@@ -98,8 +104,9 @@ export const ImagePickerButton = memo(
 
     return (
       <AppButton
-        title={isPicking ? 'Carregando...' : label}
+        title={isPicking ? 'Selecionando...' : label}
         onPress={handlePress}
+        variant="secondary"
         disabled={isPicking}
       />
     );

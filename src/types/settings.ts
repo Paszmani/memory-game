@@ -131,8 +131,21 @@ export interface BrandingSettings {
   gameSubtitle: string;
   logoUri?: string;
   accentEmoji: string;
+
+  /**
+   * Cor do título principal da tela inicial.
+   */
+  homeTitleColor?: string;
+
+  /**
+   * Configurações do menu exibido ao finalizar o jogo.
+   */
   finishTitle?: string;
   finishMessage?: string;
+  finishIcon?: string;
+  finishIconImageUri?: string;
+  finishBackgroundImageUri?: string;
+  finishTitleColor?: string;
 }
 
 export interface AppSettings {

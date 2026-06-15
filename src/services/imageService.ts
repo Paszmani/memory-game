@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 
-import { Dimensions, Platform } from 'react-native';
+import { Dimensions, PixelRatio, Platform } from 'react-native';
 
 import { saveWebImageFromUri } from '@/services/webImageStorage';
 
@@ -19,13 +19,20 @@ interface PickOptions {
   allowsEditing?: boolean;
   persistOnWeb?: boolean;
   storagePrefix?: string;
+  maxWidth?: number;
+  maxHeight?: number;
+  outputMimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
 }
 
 export function getScreenInfo(): ScreenInfo {
-  const { width, height } = Dimensions.get('screen');
+  const { width, height } = Dimensions.get('window');
+  const scale = Math.max(1, PixelRatio.get());
 
-  const pw = Math.min(width, height);
-  const ph = Math.max(width, height);
+  const physicalWidth = Math.round(width * scale);
+  const physicalHeight = Math.round(height * scale);
+
+  const pw = Math.min(physicalWidth, physicalHeight);
+  const ph = Math.max(physicalWidth, physicalHeight);
 
   function gcd(a: number, b: number): number {
     return b === 0 ? a : gcd(b, a % b);
@@ -33,18 +40,15 @@ export function getScreenInfo(): ScreenInfo {
 
   const simplify = (w: number, h: number) => {
     const divisor = gcd(w, h);
-
     return `${w / divisor}:${h / divisor}`;
   };
 
   const ratio = simplify(pw, ph);
 
-  const scale = Math.max(1, Math.ceil(1920 / ph));
-  const recommendedW = Math.round(pw * scale);
-  const recommendedH = Math.round(ph * scale);
+  const recommendedW = pw;
+  const recommendedH = ph;
 
-  const description = `Tela: ${pw}×${ph}px — Proporção ${ratio}
-Imagem recomendada: ${recommendedW}×${recommendedH}px (${ratio})`;
+  const description = `Tela: ${pw}×${ph}px — Proporção ${ratio}. Imagem recomendada: ${recommendedW}×${recommendedH}px (${ratio})`;
 
   return {
     width: pw,
@@ -67,19 +71,9 @@ export async function pickImageFromLibrary(
 
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
-
-    /*
-     * Importante:
-     * Para imagens de carta, o ideal é evitar crop/compressão.
-     */
     allowsEditing: opts.allowsEditing ?? false,
     aspect: opts.aspect,
-    quality: opts.quality ?? 1,
-
-    /*
-     * Na Web, não usamos base64 para salvar no tema.
-     * O arquivo será persistido no IndexedDB e o tema salvará só uma referência.
-     */
+    quality: opts.quality ?? 0.88,
     base64: false,
   });
 
@@ -94,7 +88,12 @@ export async function pickImageFromLibrary(
   }
 
   if (Platform.OS === 'web' && opts.persistOnWeb !== false) {
-    return saveWebImageFromUri(asset.uri, opts.storagePrefix ?? 'image');
+    return saveWebImageFromUri(asset.uri, opts.storagePrefix ?? 'image', {
+      maxWidth: opts.maxWidth,
+      maxHeight: opts.maxHeight,
+      quality: opts.quality ?? 0.86,
+      mimeType: opts.outputMimeType,
+    });
   }
 
   return asset.uri;
@@ -102,20 +101,24 @@ export async function pickImageFromLibrary(
 
 export async function pickCardFrontImage(): Promise<string | null> {
   return pickImageFromLibrary({
-    quality: 1,
+    quality: 0.88,
     allowsEditing: false,
     persistOnWeb: true,
     storagePrefix: 'card_front',
+    maxWidth: 1400,
+    maxHeight: 1400,
   });
 }
 
 export async function pickCardBackImage(): Promise<string | null> {
   return pickImageFromLibrary({
     aspect: [1, 1],
-    quality: 1,
+    quality: 0.88,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'card_back',
+    maxWidth: 1000,
+    maxHeight: 1000,
   });
 }
 
@@ -125,17 +128,15 @@ export async function pickBackgroundImage(): Promise<{
 } | null> {
   const info = getScreenInfo();
 
-  const { width, height } = Dimensions.get('screen');
-
-  const pw = Math.min(width, height);
-  const ph = Math.max(width, height);
-
   const uri = await pickImageFromLibrary({
-    aspect: [pw, ph],
-    quality: 1,
+    aspect: [info.width, info.height],
+    quality: 0.86,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'background',
+    maxWidth: info.recommendedW,
+    maxHeight: info.recommendedH,
+    outputMimeType: 'image/jpeg',
   });
 
   if (!uri) {
@@ -149,26 +150,40 @@ export async function pickBackgroundImage(): Promise<{
 }
 
 export async function pickAttractImage(): Promise<string | null> {
-  const { width, height } = Dimensions.get('screen');
-
-  const pw = Math.min(width, height);
-  const ph = Math.max(width, height);
+  const info = getScreenInfo();
 
   return pickImageFromLibrary({
-    aspect: [pw, ph],
-    quality: 1,
+    aspect: [info.width, info.height],
+    quality: 0.86,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'attract',
+    maxWidth: info.recommendedW,
+    maxHeight: info.recommendedH,
+    outputMimeType: 'image/jpeg',
   });
 }
 
 export async function pickLogoImage(): Promise<string | null> {
   return pickImageFromLibrary({
     aspect: [1, 1],
-    quality: 1,
+    quality: 0.9,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'logo',
+    maxWidth: 700,
+    maxHeight: 700,
+  });
+}
+
+export async function pickFinishIconImage(): Promise<string | null> {
+  return pickImageFromLibrary({
+    aspect: [1, 1],
+    quality: 0.9,
+    allowsEditing: true,
+    persistOnWeb: true,
+    storagePrefix: 'finish_icon',
+    maxWidth: 700,
+    maxHeight: 700,
   });
 }
