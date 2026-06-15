@@ -64,6 +64,8 @@ export default function GameScreen() {
     themeCards: selectedTheme?.cards ?? [],
     pairCount,
     flipDelayMs: gameBehavior.flipDelayMs,
+    previewCardsOnStart: gameBehavior.previewCardsOnStart,
+    previewCardsDurationMs: gameBehavior.previewCardsDurationMs,
   });
 
   const { isActive, notifyActivity } = useAttractScreen({

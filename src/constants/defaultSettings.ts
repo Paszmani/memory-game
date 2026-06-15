@@ -72,6 +72,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gameBehavior: {
     soundEnabled: true,
     flipDelayMs: 800,
+    previewCardsOnStart: true,
+    previewCardsDurationMs: 5000,
     showTimer: true,
     showMoves: true,
     gridColumns: 4,

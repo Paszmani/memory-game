@@ -15,6 +15,8 @@ export interface UseMemoryGameParams {
   themeCards: CustomThemeCard[];
   pairCount: number;
   flipDelayMs?: number;
+  previewCardsOnStart?: boolean;
+  previewCardsDurationMs?: number;
 }
 
 export interface UseMemoryGameReturn {
@@ -22,12 +24,14 @@ export interface UseMemoryGameReturn {
   moves: number;
   elapsedSeconds: number;
   isLocked: boolean;
+  isPreviewing: boolean;
   isFinished: boolean;
   flipCard: (cardId: string) => void;
   restartGame: () => void;
 }
 
 const DEFAULT_FLIP_DELAY_MS = 800;
+const DEFAULT_PREVIEW_CARDS_DURATION_MS = 5000;
 
 function triggerMatchHaptic() {
   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -37,10 +41,37 @@ function triggerMismatchHaptic() {
   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 }
 
+function showAllCards(deck: MemoryCard[]): MemoryCard[] {
+  return deck.map((card) => ({
+    ...card,
+    isFlipped: true,
+  }));
+}
+
+function hideUnmatchedCards(deck: MemoryCard[]): MemoryCard[] {
+  return deck.map((card) => ({
+    ...card,
+    isFlipped: card.isMatched ? card.isFlipped : false,
+  }));
+}
+
+function normalizePreviewDuration(durationMs?: number) {
+  if (!Number.isFinite(durationMs)) {
+    return DEFAULT_PREVIEW_CARDS_DURATION_MS;
+  }
+
+  return Math.max(
+    0,
+    Math.round(durationMs ?? DEFAULT_PREVIEW_CARDS_DURATION_MS),
+  );
+}
+
 export function useMemoryGame({
   themeCards,
   pairCount,
   flipDelayMs = DEFAULT_FLIP_DELAY_MS,
+  previewCardsOnStart = true,
+  previewCardsDurationMs = DEFAULT_PREVIEW_CARDS_DURATION_MS,
 }: UseMemoryGameParams): UseMemoryGameReturn {
   const {
     elapsedSeconds,
@@ -59,9 +90,11 @@ export function useMemoryGame({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [moves, setMoves] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
   const flipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearFlipTimeout = useCallback(() => {
     if (flipTimeoutRef.current) {
@@ -70,35 +103,76 @@ export function useMemoryGame({
     }
   }, []);
 
-  useEffect(() => {
-    setCards(initialDeck);
-    setSelectedIds([]);
-    setMoves(0);
-    setIsLocked(false);
-    setIsFinished(false);
-    reset();
+  const clearPreviewTimeout = useCallback(() => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearAllTimeouts = useCallback(() => {
     clearFlipTimeout();
-  }, [initialDeck, reset, clearFlipTimeout]);
+    clearPreviewTimeout();
+  }, [clearFlipTimeout, clearPreviewTimeout]);
+
+  const startDeck = useCallback(
+    (deck: MemoryCard[]) => {
+      clearAllTimeouts();
+
+      const durationMs = normalizePreviewDuration(previewCardsDurationMs);
+      const shouldPreview =
+        previewCardsOnStart && durationMs > 0 && deck.length > 0;
+
+      setSelectedIds([]);
+      setMoves(0);
+      setIsFinished(false);
+      reset();
+
+      if (!shouldPreview) {
+        setCards(deck);
+        setIsLocked(false);
+        setIsPreviewing(false);
+        return;
+      }
+
+      setCards(showAllCards(deck));
+      setIsLocked(true);
+      setIsPreviewing(true);
+
+      previewTimeoutRef.current = setTimeout(() => {
+        setCards((currentCards) => hideUnmatchedCards(currentCards));
+        setSelectedIds([]);
+        setIsLocked(false);
+        setIsPreviewing(false);
+        previewTimeoutRef.current = null;
+      }, durationMs);
+    },
+    [
+      clearAllTimeouts,
+      previewCardsOnStart,
+      previewCardsDurationMs,
+      reset,
+    ],
+  );
+
+  useEffect(() => {
+    startDeck(initialDeck);
+  }, [initialDeck, startDeck]);
 
   useEffect(() => {
     return () => {
-      clearFlipTimeout();
+      clearAllTimeouts();
     };
-  }, [clearFlipTimeout]);
+  }, [clearAllTimeouts]);
 
   const restartGame = useCallback(() => {
-    clearFlipTimeout();
-    setCards(createDeck(themeCards, pairCount));
-    setSelectedIds([]);
-    setMoves(0);
-    setIsLocked(false);
-    setIsFinished(false);
-    reset();
-  }, [themeCards, pairCount, reset, clearFlipTimeout]);
+    const nextDeck = createDeck(themeCards, pairCount);
+    startDeck(nextDeck);
+  }, [themeCards, pairCount, startDeck]);
 
   const flipCard = useCallback(
     (cardId: string) => {
-      if (isLocked || isFinished) {
+      if (isLocked || isPreviewing || isFinished) {
         return;
       }
 
@@ -115,7 +189,9 @@ export function useMemoryGame({
       }
 
       const withFlipped = cards.map((card) =>
-        card.id === cardId ? { ...card, isFlipped: true } : card,
+        card.id === cardId
+          ? { ...card, isFlipped: true }
+          : card,
       );
 
       if (selectedIds.length === 0) {
@@ -172,6 +248,7 @@ export function useMemoryGame({
 
         setSelectedIds([]);
         setIsLocked(false);
+        flipTimeoutRef.current = null;
       }, flipDelayMs);
     },
     [
@@ -179,6 +256,7 @@ export function useMemoryGame({
       selectedIds,
       moves,
       isLocked,
+      isPreviewing,
       isFinished,
       isRunning,
       start,
@@ -192,6 +270,7 @@ export function useMemoryGame({
     moves,
     elapsedSeconds,
     isLocked,
+    isPreviewing,
     isFinished,
     flipCard,
     restartGame,

@@ -17,7 +17,7 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
   const { localValue: local, status, update, save, reset } = useSaveState(value, onSave);
 
   return (
-    <SectionCard title="🎮 Gameplay">
+    <SectionCard title=" Gameplay">
       <SliderInput
         label="Tempo para virar cartas erradas"
         value={local.flipDelayMs}
@@ -27,6 +27,27 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
         onChange={(v) => update({ flipDelayMs: v })}
         formatValue={(v) => `${(v / 1000).toFixed(1)}s`}
       />
+
+      <ToggleSwitch
+        label="Mostrar cartas no início"
+        hint="Exibe todas as cartas viradas antes do jogador começar."
+        value={local.previewCardsOnStart}
+        onToggle={(v) => update({ previewCardsOnStart: v })}
+      />
+
+      {local.previewCardsOnStart && (
+        <SliderInput
+          label="Tempo com cartas viradas"
+          value={local.previewCardsDurationMs}
+          min={1000}
+          max={15000}
+          step={500}
+          onChange={(v) => update({ previewCardsDurationMs: v })}
+          formatValue={(v) =>
+            v % 1000 === 0 ? `${v / 1000}s` : `${(v / 1000).toFixed(1)}s`
+          }
+        />
+      )}
 
       <SliderInput
         label="Dica automática após inatividade"
@@ -38,9 +59,24 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
         formatValue={(v) => v === 0 ? 'Desligado' : `${v}s`}
       />
 
-      <ToggleSwitch label="Mostrar cronômetro"     value={local.showTimer}    onToggle={(v) => update({ showTimer: v })} />
-      <ToggleSwitch label="Mostrar jogadas"         value={local.showMoves}    onToggle={(v) => update({ showMoves: v })} />
-      <ToggleSwitch label="Som habilitado"          value={local.soundEnabled} onToggle={(v) => update({ soundEnabled: v })} />
+      <ToggleSwitch
+        label="Mostrar cronômetro"
+        value={local.showTimer}
+        onToggle={(v) => update({ showTimer: v })}
+      />
+
+      <ToggleSwitch
+        label="Mostrar jogadas"
+        value={local.showMoves}
+        onToggle={(v) => update({ showMoves: v })}
+      />
+
+      <ToggleSwitch
+        label="Som habilitado"
+        value={local.soundEnabled}
+        onToggle={(v) => update({ soundEnabled: v })}
+      />
+
       <ToggleSwitch
         label="Rótulos nas cartas"
         hint="Exibe o nome do item abaixo do emoji"
@@ -53,6 +89,6 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
   );
 });
 
-GameplaySettings.displayName = 'GameplaySettings';
+GameplaySettings.displayName = 'GameplaySettings';  
 
 const styles = StyleSheet.create({});

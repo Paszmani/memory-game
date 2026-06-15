@@ -106,6 +106,8 @@ export interface UISettings {
 export interface GameBehaviorSettings {
   soundEnabled: boolean;
   flipDelayMs: number;
+  previewCardsOnStart: boolean;
+  previewCardsDurationMs: number;
   showTimer: boolean;
   showMoves: boolean;
   gridColumns: GridColumns;
