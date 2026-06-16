@@ -17,6 +17,7 @@ export interface WebImageOptimizationOptions {
   maxHeight?: number;
   quality?: number;
   mimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
+  cropAspect?: [number, number];
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -129,6 +130,7 @@ async function optimizeImageBlob(
     !!options.maxWidth ||
     !!options.maxHeight ||
     !!options.mimeType ||
+    !!options.cropAspect ||
     typeof options.quality === 'number';
 
   if (!canUseCanvas() || !shouldOptimize || blob.type === 'image/gif') {
@@ -150,24 +152,48 @@ async function optimizeImageBlob(
           return;
         }
 
-        const maxWidth = options.maxWidth ?? sourceWidth;
-        const maxHeight = options.maxHeight ?? sourceHeight;
+        let sx = 0;
+        let sy = 0;
+        let sw = sourceWidth;
+        let sh = sourceHeight;
 
-        const scale = Math.min(
-          1,
-          maxWidth / sourceWidth,
-          maxHeight / sourceHeight,
-        );
+        const cropW = options.cropAspect?.[0] ?? 0;
+        const cropH = options.cropAspect?.[1] ?? 0;
 
-        const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
-        const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+        if (cropW > 0 && cropH > 0) {
+          const targetAspect = cropW / cropH;
+          const sourceAspect = sourceWidth / sourceHeight;
+
+          if (sourceAspect > targetAspect) {
+            sw = Math.round(sourceHeight * targetAspect);
+            sx = Math.round((sourceWidth - sw) / 2);
+          } else if (sourceAspect < targetAspect) {
+            sh = Math.round(sourceWidth / targetAspect);
+            sy = Math.round((sourceHeight - sh) / 2);
+          }
+        }
+
+        const maxWidth = options.maxWidth ?? sw;
+        const maxHeight = options.maxHeight ?? sh;
+
+        const scale = Math.min(1, maxWidth / sw, maxHeight / sh);
+
+        const targetWidth = Math.max(1, Math.round(sw * scale));
+        const targetHeight = Math.max(1, Math.round(sh * scale));
 
         const outputType =
           options.mimeType ??
-          (blob.type === 'image/png' ? 'image/png' : 'image/jpeg');
+          (blob.type === 'image/png' || blob.type === 'image/webp'
+            ? blob.type
+            : 'image/jpeg');
 
         const shouldResize =
-          targetWidth !== sourceWidth || targetHeight !== sourceHeight;
+          targetWidth !== sourceWidth ||
+          targetHeight !== sourceHeight ||
+          sx !== 0 ||
+          sy !== 0 ||
+          sw !== sourceWidth ||
+          sh !== sourceHeight;
 
         if (!shouldResize && !options.mimeType && !options.quality) {
           URL.revokeObjectURL(objectUrl);
@@ -192,7 +218,17 @@ async function optimizeImageBlob(
           ctx.fillRect(0, 0, targetWidth, targetHeight);
         }
 
-        ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+        ctx.drawImage(
+          image,
+          sx,
+          sy,
+          sw,
+          sh,
+          0,
+          0,
+          targetWidth,
+          targetHeight,
+        );
 
         canvas.toBlob(
           (optimizedBlob) => {
@@ -200,7 +236,7 @@ async function optimizeImageBlob(
             resolve(optimizedBlob ?? blob);
           },
           outputType,
-          outputType === 'image/png' ? undefined : options.quality ?? 0.86,
+          outputType === 'image/png' ? undefined : options.quality ?? 0.88,
         );
       } catch {
         URL.revokeObjectURL(objectUrl);

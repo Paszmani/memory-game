@@ -24,6 +24,8 @@ import { colors }             from '@/constants/colors';
 import { AppSettings, DeepPartial } from '@/types/settings';
 import { CreateThemeInput, CustomTheme } from '@/types/theme';
 import { TotemCustomizer } from '@/components/customize/TotemCustomizer';
+import { useColors } from '@/hooks/useColors';
+
 
 import {
   createCustomTheme,
@@ -46,6 +48,7 @@ export default function CustomizeScreen() {
   const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
 
   const { settings, saveSettings } = useAppSettings();
+  const appColors = useColors();
   const { themes, loadThemes }     = useThemeManager();
   const { show: toast }            = useToast();
 
@@ -107,19 +110,58 @@ export default function CustomizeScreen() {
   return (
     <ScreenContainer>
       {/* Barra de abas */}
-      <View style={styles.tabBar}>
-        {TABS.map(({ key, icon, label }) => (
-          <Pressable
-            key={key}
-            onPress={() => setActiveTab(key)}
-            style={[styles.tab, activeTab === key && styles.tabActive]}
-          >
-            <Text style={styles.tabIcon}>{icon}</Text>
-            <Text style={[styles.tabLabel, activeTab === key && styles.tabLabelActive]}>
-              {label}
-            </Text>
-          </Pressable>
-        ))}
+      <View
+        style={[
+          styles.tabBar,
+          {
+            backgroundColor: appColors.surface,
+            borderColor: appColors.border,
+          },
+        ]}
+      >
+        {TABS.map(({ key, icon, label }) => {
+          const isActive = activeTab === key;
+
+          return (
+            <Pressable
+              key={key}
+              onPress={() => setActiveTab(key)}
+              style={[
+                styles.tab,
+                {
+                  borderColor: isActive ? appColors.primaryBorder : 'transparent',
+                },
+                isActive && {
+                  backgroundColor: appColors.primaryGlow,
+                },
+              ]}
+            >
+              {icon ? (
+                <Text
+                  style={[
+                    styles.tabIcon,
+                    {
+                      color: isActive ? appColors.primary : appColors.textMuted,
+                    },
+                  ]}
+                >
+                  {icon}
+                </Text>
+              ) : null}
+
+              <Text
+                style={[
+                  styles.tabLabel,
+                  {
+                    color: isActive ? appColors.primary : appColors.textMuted,
+                  },
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* ── Aba: Temas ─────────────────────────────────────── */}

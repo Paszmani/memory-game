@@ -15,6 +15,7 @@ export interface ScreenInfo {
 
 interface PickOptions {
   aspect?: [number, number];
+  cropAspect?: [number, number];
   quality?: number;
   allowsEditing?: boolean;
   persistOnWeb?: boolean;
@@ -24,6 +25,9 @@ interface PickOptions {
   outputMimeType?: 'image/jpeg' | 'image/png' | 'image/webp';
 }
 
+const CARD_IMAGE_SIZE = 1200;
+const ICON_IMAGE_SIZE = 700;
+
 export function getScreenInfo(): ScreenInfo {
   const { width, height } = Dimensions.get('window');
   const scale = Math.max(1, PixelRatio.get());
@@ -31,29 +35,22 @@ export function getScreenInfo(): ScreenInfo {
   const physicalWidth = Math.round(width * scale);
   const physicalHeight = Math.round(height * scale);
 
-  const pw = Math.min(physicalWidth, physicalHeight);
-  const ph = Math.max(physicalWidth, physicalHeight);
+  const recommendedW = physicalWidth;
+  const recommendedH = physicalHeight;
 
   function gcd(a: number, b: number): number {
     return b === 0 ? a : gcd(b, a % b);
   }
 
-  const simplify = (w: number, h: number) => {
-    const divisor = gcd(w, h);
-    return `${w / divisor}:${h / divisor}`;
-  };
+  const divisor = gcd(recommendedW, recommendedH);
+  const aspectRatio = `${recommendedW / divisor}:${recommendedH / divisor}`;
 
-  const ratio = simplify(pw, ph);
-
-  const recommendedW = pw;
-  const recommendedH = ph;
-
-  const description = `Tela: ${pw}×${ph}px — Proporção ${ratio}. Imagem recomendada: ${recommendedW}×${recommendedH}px (${ratio})`;
+  const description = `Tela: ${recommendedW}×${recommendedH}px — Proporção ${aspectRatio}. Imagem recomendada: ${recommendedW}×${recommendedH}px (${aspectRatio})`;
 
   return {
-    width: pw,
-    height: ph,
-    aspectRatio: ratio,
+    width: recommendedW,
+    height: recommendedH,
+    aspectRatio,
     recommendedW,
     recommendedH,
     description,
@@ -71,6 +68,15 @@ export async function pickImageFromLibrary(
 
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
+
+    /**
+     * Android/iOS:
+     * abre a tela nativa de recorte.
+     *
+     * Web:
+     * o expo-image-picker ignora a edição nativa;
+     * por isso o corte é reforçado depois no webImageStorage.
+     */
     allowsEditing: opts.allowsEditing ?? false,
     aspect: opts.aspect,
     quality: opts.quality ?? 0.88,
@@ -91,37 +97,53 @@ export async function pickImageFromLibrary(
     return saveWebImageFromUri(asset.uri, opts.storagePrefix ?? 'image', {
       maxWidth: opts.maxWidth,
       maxHeight: opts.maxHeight,
-      quality: opts.quality ?? 0.86,
+      quality: opts.quality ?? 0.88,
       mimeType: opts.outputMimeType,
+      cropAspect: opts.cropAspect ?? opts.aspect,
     });
   }
 
   return asset.uri;
 }
 
+/**
+ * Frente das cartas:
+ * sempre quadrado.
+ */
 export async function pickCardFrontImage(): Promise<string | null> {
   return pickImageFromLibrary({
-    quality: 0.88,
-    allowsEditing: false,
+    aspect: [1, 1],
+    cropAspect: [1, 1],
+    quality: 0.9,
+    allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'card_front',
-    maxWidth: 1400,
-    maxHeight: 1400,
+    maxWidth: CARD_IMAGE_SIZE,
+    maxHeight: CARD_IMAGE_SIZE,
   });
 }
 
+/**
+ * Verso das cartas:
+ * sempre quadrado.
+ */
 export async function pickCardBackImage(): Promise<string | null> {
   return pickImageFromLibrary({
     aspect: [1, 1],
-    quality: 0.88,
+    cropAspect: [1, 1],
+    quality: 0.9,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'card_back',
-    maxWidth: 1000,
-    maxHeight: 1000,
+    maxWidth: CARD_IMAGE_SIZE,
+    maxHeight: CARD_IMAGE_SIZE,
   });
 }
 
+/**
+ * Papel de parede:
+ * sempre na proporção exata da tela atual.
+ */
 export async function pickBackgroundImage(): Promise<{
   uri: string;
   info: ScreenInfo;
@@ -130,6 +152,7 @@ export async function pickBackgroundImage(): Promise<{
 
   const uri = await pickImageFromLibrary({
     aspect: [info.width, info.height],
+    cropAspect: [info.width, info.height],
     quality: 0.86,
     allowsEditing: true,
     persistOnWeb: true,
@@ -149,11 +172,16 @@ export async function pickBackgroundImage(): Promise<{
   };
 }
 
+/**
+ * Imagem central da tela de atração:
+ * também segue a proporção da tela.
+ */
 export async function pickAttractImage(): Promise<string | null> {
   const info = getScreenInfo();
 
   return pickImageFromLibrary({
     aspect: [info.width, info.height],
+    cropAspect: [info.width, info.height],
     quality: 0.86,
     allowsEditing: true,
     persistOnWeb: true,
@@ -164,26 +192,36 @@ export async function pickAttractImage(): Promise<string | null> {
   });
 }
 
+/**
+ * Logo:
+ * quadrado para manter consistência visual.
+ */
 export async function pickLogoImage(): Promise<string | null> {
   return pickImageFromLibrary({
     aspect: [1, 1],
+    cropAspect: [1, 1],
     quality: 0.9,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'logo',
-    maxWidth: 700,
-    maxHeight: 700,
+    maxWidth: ICON_IMAGE_SIZE,
+    maxHeight: ICON_IMAGE_SIZE,
   });
 }
 
+/**
+ * Ícone do menu final:
+ * quadrado.
+ */
 export async function pickFinishIconImage(): Promise<string | null> {
   return pickImageFromLibrary({
     aspect: [1, 1],
+    cropAspect: [1, 1],
     quality: 0.9,
     allowsEditing: true,
     persistOnWeb: true,
     storagePrefix: 'finish_icon',
-    maxWidth: 700,
-    maxHeight: 700,
+    maxWidth: ICON_IMAGE_SIZE,
+    maxHeight: ICON_IMAGE_SIZE,
   });
 }
