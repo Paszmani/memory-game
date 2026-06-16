@@ -34,11 +34,12 @@ function hexToRgba(hex: string | undefined, alpha: number, fallback = '#000000')
 
 export function useColors() {
   const { settings } = useSettings();
+  const { primaryColor, surfaceColor, borderColor, textColor } = settings.ui;
 
-  const primary = normalizeHex(settings.ui.primaryColor, base.primary);
-  const surface = normalizeHex(settings.ui.surfaceColor, base.surface);
-  const border = normalizeHex(settings.ui.borderColor, base.border);
-  const text = normalizeHex(settings.ui.textColor, base.text);
+  const primary = normalizeHex(primaryColor, base.primary);
+  const surface = normalizeHex(surfaceColor, base.surface);
+  const border = normalizeHex(borderColor, base.border);
+  const text = normalizeHex(textColor, base.text);
 
   return useMemo(
     () => ({

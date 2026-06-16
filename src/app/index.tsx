@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AttractScreen } from '@/components/game/AttractScreen';
 import { AppButton } from '@/components/ui/AppButton';
 import { GradientBackground } from '@/components/ui/GradientBackground';
-import { colors as baseColors } from '@/constants/colors';
+import { colors as baseColors, colors } from '@/constants/colors';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAttractScreen } from '@/hooks/useAttractScreen';
 import { useColors } from '@/hooks/useColors';
@@ -177,7 +177,7 @@ export default function HomeScreen() {
                 style={[
                   styles.title,
                   {
-                    color: branding.homeTitleColor || '#FFFFFF',
+                    color: colors.primary,
                   },
                 ]}
               >
@@ -336,7 +336,6 @@ const styles = StyleSheet.create({
     fontSize: 76,
   },
   title: {
-    color: baseColors.primary,
     fontSize: 44,
     fontWeight: '900',
     textAlign: 'center',

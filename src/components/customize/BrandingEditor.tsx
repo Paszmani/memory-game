@@ -33,9 +33,6 @@ export const BrandingEditor = memo(({ value, onSave }: Props) => {
 
   const resolvedLogoUri = useResolvedImageUri(local.logoUri);
   const resolvedFinishIconUri = useResolvedImageUri(local.finishIconImageUri);
-  const resolvedFinishBackgroundUri = useResolvedImageUri(
-    local.finishBackgroundImageUri,
-  );
 
   return (
     <SectionCard title="Identidade visual">
@@ -238,19 +235,6 @@ export const BrandingEditor = memo(({ value, onSave }: Props) => {
           },
         ]}
       >
-        {resolvedFinishBackgroundUri ? (
-          <>
-            <Image
-              source={{ uri: resolvedFinishBackgroundUri }}
-              style={StyleSheet.absoluteFill}
-              contentFit="cover"
-              transition={160}
-              cachePolicy="memory-disk"
-            />
-
-            <View style={styles.finishOverlay} />
-          </>
-        ) : null}
 
         {resolvedFinishIconUri ? (
           <View
@@ -438,49 +422,6 @@ export const BrandingEditor = memo(({ value, onSave }: Props) => {
         ) : null}
       </View>
 
-      <View style={styles.field}>
-        <Text
-          style={[
-            styles.label,
-            typography.bold,
-            {
-              color: colors.textSecondary,
-            },
-          ]}
-        >
-          Papel de parede do menu final
-        </Text>
-
-        <ImagePickerButton
-          label={
-            local.finishBackgroundImageUri
-              ? 'Trocar papel de parede'
-              : 'Adicionar papel de parede'
-          }
-          mode="background"
-          onImagePicked={(finishBackgroundImageUri) =>
-            update({ finishBackgroundImageUri })
-          }
-        />
-
-        {local.finishBackgroundImageUri ? (
-          <Pressable
-            onPress={() => update({ finishBackgroundImageUri: undefined })}
-          >
-            <Text
-              style={[
-                styles.remove,
-                {
-                  color: colors.danger,
-                },
-              ]}
-            >
-              Remover papel de parede
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
-
       <Text
         style={[
           styles.helper,
@@ -514,11 +455,6 @@ const styles = StyleSheet.create({
   finishPreview: {
     minHeight: 230,
     justifyContent: 'center',
-  },
-
-  finishOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
   },
 
   previewLogo: {

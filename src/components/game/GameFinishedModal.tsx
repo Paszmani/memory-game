@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef } from 'react';
+import React, { memo, useEffect, useMemo, useRef } from 'react';
 
 import { Image } from 'expo-image';
 import { Animated, Modal, StyleSheet, Text, View } from 'react-native';
@@ -33,14 +33,26 @@ export const GameFinishedModal = memo(
     const finishTitle = settings.branding.finishTitle?.trim() || 'Parabéns!';
     const finishMessage =
       settings.branding.finishMessage?.trim() || 'Você completou o jogo!';
-    const finishIcon = settings.branding.finishIcon?.trim() || '🏆';
+    const finishIcon = settings.branding.finishIcon?.trim() || '';
 
     const finishIconImageUri = useResolvedImageUri(
       settings.branding.finishIconImageUri,
     );
 
-    const finishBackgroundImageUri = useResolvedImageUri(
-      settings.branding.finishBackgroundImageUri,
+    const cardStyle = useMemo(
+      () => ({
+        backgroundColor: useGlass ? colors.glass : colors.surfaceElevated,
+        borderColor: useGlass ? colors.glassBorder : colors.border,
+        borderRadius: radius,
+      }),
+      [
+        useGlass,
+        colors.glass,
+        colors.surfaceElevated,
+        colors.glassBorder,
+        colors.border,
+        radius,
+      ],
     );
 
     useEffect(() => {
@@ -77,29 +89,13 @@ export const GameFinishedModal = memo(
           <Animated.View
             style={[
               styles.card,
+              cardStyle,
               {
-                backgroundColor: useGlass ? colors.glass : colors.surfaceElevated,
-                borderColor: useGlass ? colors.glassBorder : colors.border,
-                borderRadius: radius,
                 opacity: opacityAnim,
                 transform: [{ scale: scaleAnim }],
               },
             ]}
           >
-            {finishBackgroundImageUri ? (
-              <>
-                <Image
-                  source={{ uri: finishBackgroundImageUri }}
-                  style={StyleSheet.absoluteFill}
-                  contentFit="cover"
-                  transition={160}
-                  cachePolicy="memory-disk"
-                />
-
-                <View style={styles.backgroundOverlay} />
-              </>
-            ) : null}
-
             <View style={styles.content}>
               {finishIconImageUri ? (
                 <View
@@ -119,9 +115,9 @@ export const GameFinishedModal = memo(
                     cachePolicy="memory-disk"
                   />
                 </View>
-              ) : (
+              ) : finishIcon ? (
                 <Text style={styles.emoji}>{finishIcon}</Text>
-              )}
+              ) : null}
 
               <Text
                 style={[
@@ -252,11 +248,6 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     borderWidth: 1,
     overflow: 'hidden',
-  },
-
-  backgroundOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.58)',
   },
 
   content: {
