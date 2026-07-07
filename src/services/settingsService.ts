@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS } from '@/constants/defaultSettings';
 import { AppSettings, DeepPartial } from '@/types/settings';
 import { getJson, setJson }        from '@/services/storageService';
 
-function mergeSettings(saved: Partial<AppSettings>): AppSettings {
+export function mergeSettings(saved: Partial<AppSettings>): AppSettings {
   return {
     branding:     { ...DEFAULT_SETTINGS.branding,     ...saved.branding },
     background:   { ...DEFAULT_SETTINGS.background,   ...saved.background },

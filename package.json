@@ -8,7 +8,11 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "predeploy": "expo export -p web",
-    "deploy": "gh-pages --nojekyll -d dist"
+    "deploy": "gh-pages --nojekyll -d dist",
+    "electron:web": "expo export -p web --output-dir electron/web",
+    "electron:start": "npm --prefix electron run start",
+    "electron:dev": "npm run electron:web && npm run electron:start",
+    "electron:dist": "npm run electron:web && npm --prefix electron run dist"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

@@ -3,6 +3,7 @@ export const STORAGE_KEYS = {
   visualThemes: '@memory_game/visual_themes',
   gameResults:  '@memory_game/game_results',
   appSettings:  '@memory_game/app_settings',
+  leads:        '@memory_game/leads',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

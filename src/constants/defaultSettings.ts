@@ -3,8 +3,16 @@ import type {
   CardShape,
   CardSizeOption,
   FontFamilyOption,
+  LeadField,
   UIFontSize,
 } from '@/types/settings';
+
+/** Campos padrão do formulário de lead (usados quando a lista está vazia). */
+export const DEFAULT_LEAD_FIELDS: LeadField[] = [
+  { id: 'name', label: 'Nome', type: 'text', required: true, maxLength: 60 },
+  { id: 'email', label: 'E-mail', type: 'email', required: true },
+  { id: 'telefone', label: 'Telefone', type: 'tel', required: false },
+];
 
 export const DEFAULT_SETTINGS: AppSettings = {
   branding: {
@@ -90,6 +98,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     autoResetAfterFinishSeconds: 15,
     kioskMode: false,
     showBranding: true,
+    leadCaptureEnabled: false,
+    leadFields: DEFAULT_LEAD_FIELDS,
   },
 };
 

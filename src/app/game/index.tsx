@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AttractScreen } from '@/components/game/AttractScreen';
 import { GameFinishedModal } from '@/components/game/GameFinishedModal';
+import { LeadFormModal } from '@/components/game/LeadFormModal';
 import { GameHeader } from '@/components/game/GameHeader';
 import { MemoryBoard } from '@/components/game/MemoryBoard';
 import { AppButton } from '@/components/ui/AppButton';
@@ -46,6 +47,9 @@ export default function GameScreen() {
 
   const hasSavedRef = useRef(false);
   const autoResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Lead já enviado/pulado nesta partida — libera o modal de fim de jogo.
+  const [leadHandled, setLeadHandled] = useState(false);
 
   const selectedTheme = useMemo(
     () => themes.find((theme) => theme.id === selectedThemeId) ?? themes[0],
@@ -90,6 +94,9 @@ export default function GameScreen() {
     [game, notifyActivity],
   );
 
+  const showLeadForm =
+    game.isFinished && settings.totem.leadCaptureEnabled === true && !leadHandled;
+
   useEffect(() => {
     if (!game.isFinished || !selectedTheme || hasSavedRef.current) {
       return;
@@ -107,20 +114,31 @@ export default function GameScreen() {
     };
 
     void saveGameResult(result);
+  }, [game.isFinished, game.moves, game.elapsedSeconds, selectedTheme]);
 
-    if (settings.totem.autoResetAfterFinishSeconds > 0) {
-      autoResetRef.current = setTimeout(
-        () => router.replace('/'),
-        settings.totem.autoResetAfterFinishSeconds * 1000,
-      );
+  // Auto-reset do totem: só conta depois do formulário de lead (enviado ou
+  // pulado) — quem está preenchendo nunca é expulso pelo timer.
+  useEffect(() => {
+    if (!game.isFinished || showLeadForm) {
+      return;
     }
-  }, [
-    game.isFinished,
-    game.moves,
-    game.elapsedSeconds,
-    selectedTheme,
-    settings.totem.autoResetAfterFinishSeconds,
-  ]);
+
+    if (settings.totem.autoResetAfterFinishSeconds <= 0) {
+      return;
+    }
+
+    autoResetRef.current = setTimeout(
+      () => router.replace('/'),
+      settings.totem.autoResetAfterFinishSeconds * 1000,
+    );
+
+    return () => {
+      if (autoResetRef.current) {
+        clearTimeout(autoResetRef.current);
+        autoResetRef.current = null;
+      }
+    };
+  }, [game.isFinished, showLeadForm, settings.totem.autoResetAfterFinishSeconds]);
 
   useEffect(() => {
     return () => {
@@ -136,6 +154,7 @@ export default function GameScreen() {
     }
 
     hasSavedRef.current = false;
+    setLeadHandled(false);
     notifyActivity();
     game.restartGame();
   }, [game, notifyActivity]);
@@ -286,8 +305,17 @@ export default function GameScreen() {
           </View>
         </View>
 
+        <LeadFormModal
+          visible={showLeadForm}
+          moves={game.moves}
+          elapsedSeconds={game.elapsedSeconds}
+          themeId={selectedTheme.id}
+          themeName={selectedTheme.name}
+          onDone={() => setLeadHandled(true)}
+        />
+
         <GameFinishedModal
-          visible={game.isFinished}
+          visible={game.isFinished && !showLeadForm}
           moves={game.moves}
           elapsedSeconds={game.elapsedSeconds}
           onRestart={handleRestart}

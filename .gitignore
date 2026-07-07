@@ -63,3 +63,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Electron (leads gravados em dev pela casca desktop)
+/data/

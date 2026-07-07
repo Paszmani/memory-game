@@ -116,6 +116,20 @@ export interface GameBehaviorSettings {
   hintAfterSeconds: number;
 }
 
+/** Tipo de um campo do formulário de lead (mesmo modelo do Kiosk Maze). */
+export type LeadFieldType = 'text' | 'email' | 'tel' | 'select' | 'checkbox';
+
+/** Um campo do formulário de lead, configurável nas Configurações. */
+export interface LeadField {
+  id: string;
+  label: string;
+  type: LeadFieldType;
+  required: boolean;
+  maxLength?: number;
+  /** Opções quando type === 'select'. */
+  options?: string[];
+}
+
 export interface TotemSettings {
   attractScreenEnabled: boolean;
   attractTimeoutSeconds: number;
@@ -124,6 +138,15 @@ export interface TotemSettings {
   autoResetAfterFinishSeconds: number;
   kioskMode: boolean;
   showBranding: boolean;
+
+  /**
+   * Captura de lead ao completar o jogo.
+   * Opcional para não quebrar configurações antigas já salvas.
+   */
+  leadCaptureEnabled?: boolean;
+
+  /** Campos do formulário de lead (ausente/vazio = campos padrão). */
+  leadFields?: LeadField[];
 }
 
 export interface BrandingSettings {
