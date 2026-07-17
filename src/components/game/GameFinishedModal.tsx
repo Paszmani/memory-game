@@ -30,9 +30,16 @@ export const GameFinishedModal = memo(
     const radius = Math.max(18, settings.ui.globalRadius + 10);
     const useGlass = settings.ui.useGlassmorphism;
 
-    const finishTitle = settings.branding.finishTitle?.trim() || 'Parabéns!';
+    // Campo NUNCA preenchido (undefined) cai no default; string vazia é uma
+    // escolha do operador ("quero sem texto") e oculta o elemento.
+    const finishTitle =
+      settings.branding.finishTitle === undefined
+        ? 'Parabéns!'
+        : settings.branding.finishTitle.trim();
     const finishMessage =
-      settings.branding.finishMessage?.trim() || 'Você completou o jogo!';
+      settings.branding.finishMessage === undefined
+        ? 'Você completou o jogo!'
+        : settings.branding.finishMessage.trim();
     const finishIcon = settings.branding.finishIcon?.trim() || '';
 
     const finishIconImageUri = useResolvedImageUri(
@@ -119,29 +126,33 @@ export const GameFinishedModal = memo(
                 <Text style={styles.emoji}>{finishIcon}</Text>
               ) : null}
 
-              <Text
-                style={[
-                  styles.title,
-                  typography.black,
-                  {
-                    color: colors.primary,
-                  },
-                ]}
-              >
-                {finishTitle}
-              </Text>
+              {finishTitle.length > 0 && (
+                <Text
+                  style={[
+                    styles.title,
+                    typography.black,
+                    {
+                      color: colors.primary,
+                    },
+                  ]}
+                >
+                  {finishTitle}
+                </Text>
+              )}
 
-              <Text
-                style={[
-                  styles.subtitle,
-                  typography.regular,
-                  {
-                    color: colors.textSecondary,
-                  },
-                ]}
-              >
-                {finishMessage}
-              </Text>
+              {finishMessage.length > 0 && (
+                <Text
+                  style={[
+                    styles.subtitle,
+                    typography.regular,
+                    {
+                      color: colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {finishMessage}
+                </Text>
+              )}
 
               <View
                 style={[

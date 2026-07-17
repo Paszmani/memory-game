@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -248,6 +249,31 @@ export default function GameScreen() {
             >
               {selectedTheme.name}
             </Text>
+
+            {!game.isFinished && (
+              <Pressable
+                onPress={game.pauseGame}
+                style={({ pressed }) => [
+                  styles.backBtn,
+                  {
+                    backgroundColor: colors.primaryGlow,
+                    borderColor: colors.primaryMedium,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.backBtnText,
+                    {
+                      color: colors.primary,
+                    },
+                  ]}
+                >
+                  ⏸ Pausar
+                </Text>
+              </Pressable>
+            )}
           </View>
 
           {!isLandscape && (
@@ -323,12 +349,58 @@ export default function GameScreen() {
           onRestart={handleRestart}
           onGoHome={handleGoHome}
         />
+
+        {/* Menu de pausa: cronômetro congelado, só retomar ou voltar ao início. */}
+        <Modal
+          visible={game.isPaused}
+          transparent
+          animationType="fade"
+          onRequestClose={game.resumeGame}
+        >
+          <View style={[styles.pauseOverlay, { backgroundColor: baseColors.overlay }]}>
+            <View
+              style={[
+                styles.pauseCard,
+                {
+                  backgroundColor: colors.surfaceElevated,
+                  borderColor: colors.border,
+                  borderRadius: Math.max(18, settings.ui.globalRadius + 10),
+                },
+              ]}
+            >
+              <Text style={[styles.pauseTitle, { color: colors.text }]}>Pausado</Text>
+
+              <AppButton title="Retomar" onPress={game.resumeGame} fullWidth />
+              <AppButton title="Menu inicial" variant="ghost" onPress={handleGoHome} fullWidth />
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  pauseOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  pauseCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderWidth: 1,
+    padding: 24,
+    gap: 12,
+    alignItems: 'stretch',
+  },
+  pauseTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   safe: {
     flex: 1,
   },

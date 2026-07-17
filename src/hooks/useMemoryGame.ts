@@ -26,8 +26,12 @@ export interface UseMemoryGameReturn {
   isLocked: boolean;
   isPreviewing: boolean;
   isFinished: boolean;
+  /** Pausa (menu do jogo): congela o cronômetro e bloqueia viradas. */
+  isPaused: boolean;
   flipCard: (cardId: string) => void;
   restartGame: () => void;
+  pauseGame: () => void;
+  resumeGame: () => void;
 }
 
 const DEFAULT_FLIP_DELAY_MS = 800;
@@ -79,6 +83,8 @@ export function useMemoryGame({
     start,
     stop,
     reset,
+    pause,
+    resume,
   } = useTimer();
 
   const initialDeck = useMemo(
@@ -92,6 +98,9 @@ export function useMemoryGame({
   const [isLocked, setIsLocked] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  // O cronômetro só retoma se estava correndo quando pausou (1ª carta virada).
+  const wasTimerRunningRef = useRef(false);
 
   const flipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -126,6 +135,7 @@ export function useMemoryGame({
       setSelectedIds([]);
       setMoves(0);
       setIsFinished(false);
+      setIsPaused(false);
       reset();
 
       if (!shouldPreview) {
@@ -170,9 +180,21 @@ export function useMemoryGame({
     startDeck(nextDeck);
   }, [themeCards, pairCount, startDeck]);
 
+  const pauseGame = useCallback(() => {
+    if (isFinished) return;
+    wasTimerRunningRef.current = isRunning;
+    setIsPaused(true);
+    pause();
+  }, [isFinished, isRunning, pause]);
+
+  const resumeGame = useCallback(() => {
+    setIsPaused(false);
+    if (wasTimerRunningRef.current) resume();
+  }, [resume]);
+
   const flipCard = useCallback(
     (cardId: string) => {
-      if (isLocked || isPreviewing || isFinished) {
+      if (isLocked || isPreviewing || isFinished || isPaused) {
         return;
       }
 
@@ -258,6 +280,7 @@ export function useMemoryGame({
       isLocked,
       isPreviewing,
       isFinished,
+      isPaused,
       isRunning,
       start,
       stop,
@@ -272,7 +295,10 @@ export function useMemoryGame({
     isLocked,
     isPreviewing,
     isFinished,
+    isPaused,
     flipCard,
     restartGame,
+    pauseGame,
+    resumeGame,
   };
 }
