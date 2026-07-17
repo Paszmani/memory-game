@@ -17,7 +17,6 @@ interface Props {
   visible: boolean;
   moves: number;
   elapsedSeconds: number;
-  themeId: string;
   themeName: string;
   /** Chamado ao enviar ou pular — libera o modal de fim de jogo. */
   onDone: () => void;
@@ -31,7 +30,7 @@ interface Props {
  * entra como metadado (score = jogadas; tempo nos campos).
  */
 export const LeadFormModal = memo(
-  ({ visible, moves, elapsedSeconds, themeId, themeName, onDone }: Props) => {
+  ({ visible, moves, elapsedSeconds, themeName, onDone }: Props) => {
     const colors = useColors();
     const typography = useTypography();
     const { settings } = useAppSettings();
@@ -97,7 +96,8 @@ export const LeadFormModal = memo(
         fields: leadFields,
         score: moves,
         terminalId: terminalId(),
-        themeId,
+        // Coluna `jogo` do CSV consolidado; o tema da partida vai em fields.tema.
+        themeId: 'memoria',
         timestamp: new Date().toISOString(),
       };
 

@@ -1,6 +1,7 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useRef, useState } from 'react';
 
 import {
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -127,6 +128,7 @@ export const ColorPickerInput = memo(({ label, value, onChange }: Props) => {
   const [hexInput, setHexInput] = useState(value);
   const [showCustom, setShowCustom] = useState(false);
   const [inputError, setInputError] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   function applyHex(text: string) {
     setHexInput(text);
@@ -288,7 +290,10 @@ export const ColorPickerInput = memo(({ label, value, onChange }: Props) => {
         animationType="slide"
         onRequestClose={() => setShowModal(false)}
       >
-        <View
+        {/* No Android o teclado cobria o campo hex (a folha não se movia);
+            o KeyboardAvoidingView encolhe a folha quando o teclado abre. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={[
             styles.modalOverlay,
             {
@@ -374,8 +379,10 @@ export const ColorPickerInput = memo(({ label, value, onChange }: Props) => {
             </View>
 
             <ScrollView
+              ref={scrollRef}
               style={styles.paletteScroll}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             >
               {PALETTE_GROUPS.map((group) => (
                 <View key={group.name} style={styles.group}>
@@ -418,7 +425,13 @@ export const ColorPickerInput = memo(({ label, value, onChange }: Props) => {
               ))}
 
               <Pressable
-                onPress={() => setShowCustom((current) => !current)}
+                onPress={() => {
+                  setShowCustom((current) => {
+                    // Ao abrir o campo hex, rola até ele para não ficar sob o teclado.
+                    if (!current) setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+                    return !current;
+                  });
+                }}
                 style={styles.customToggle}
               >
                 <Text
@@ -515,7 +528,7 @@ export const ColorPickerInput = memo(({ label, value, onChange }: Props) => {
               )}
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

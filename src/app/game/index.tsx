@@ -86,12 +86,15 @@ export default function GameScreen() {
     return false;
   }, [notifyActivity]);
 
+  // Depende de game.flipCard (não do objeto `game` inteiro, recriado a cada
+  // tick do cronômetro): mantém a identidade estável entre ticks e preserva o
+  // memo() do MemoryBoard — sem isso o tabuleiro re-renderiza a cada segundo.
   const handleFlipCard = useCallback(
     (cardId: string) => {
       notifyActivity();
       game.flipCard(cardId);
     },
-    [game, notifyActivity],
+    [game.flipCard, notifyActivity],
   );
 
   const showLeadForm =
@@ -309,7 +312,6 @@ export default function GameScreen() {
           visible={showLeadForm}
           moves={game.moves}
           elapsedSeconds={game.elapsedSeconds}
-          themeId={selectedTheme.id}
           themeName={selectedTheme.name}
           onDone={() => setLeadHandled(true)}
         />

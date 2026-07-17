@@ -8,6 +8,8 @@ export const colors = {
   primary: '#FFD600',
   primaryDark: '#FFC000',
   primaryGlow: 'rgba(255, 214, 0, 0.18)',
+  /** Texto sobre superfícies `primary` (amarelo) — contraste máximo. */
+  primaryText: '#000000',
 
   success: '#FFFFFF',
   successGlow: 'rgba(255, 255, 255, 0.12)',

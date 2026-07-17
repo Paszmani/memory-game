@@ -59,9 +59,14 @@ export default function SettingsScreen() {
   }
 
   function handleExportTheme() {
-    const result = exportSettingsFile(settings);
-    if (result === 'ok') toast('Arquivo memoria-tema.json baixado.', 'info');
-    else toast('Exportação disponível nas versões web e desktop.', 'info');
+    exportSettingsFile(settings)
+      .then((result) => {
+        if (result === 'downloaded') toast('Arquivo memoria-tema.json baixado.', 'info');
+        else if (result === 'unsupported')
+          toast('Compartilhamento indisponível neste dispositivo.', 'error');
+        // 'shared': a folha nativa já foi exibida — sem toast por cima.
+      })
+      .catch(() => toast('Erro ao exportar o tema.', 'error'));
   }
 
   function handleImportTheme() {
@@ -73,7 +78,7 @@ export default function SettingsScreen() {
         if (result.status === 'invalid') {
           toast('Arquivo inválido: use um JSON exportado pelo próprio jogo.', 'error');
         } else if (result.status === 'unsupported') {
-          toast('Importação disponível nas versões web e desktop.', 'info');
+          toast('Importação indisponível neste dispositivo.', 'error');
         }
       })
       .catch(() => toast('Erro ao importar o tema.', 'error'));
@@ -85,7 +90,9 @@ export default function SettingsScreen() {
         if (result === 'kiosk') toast('Pasta de leads aberta no Explorador.', 'info');
         else if (result === 'downloaded') toast('CSV de leads baixado.', 'info');
         else if (result === 'empty') toast('Nenhum lead registrado ainda.', 'info');
-        else toast('Exportação disponível nas versões web e desktop.', 'info');
+        else if (result === 'unsupported')
+          toast('Compartilhamento indisponível neste dispositivo.', 'error');
+        // 'shared': a folha nativa já foi exibida — sem toast por cima.
       })
       .catch(() => toast('Erro ao exportar leads.', 'error'));
   }

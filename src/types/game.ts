@@ -1,5 +1,8 @@
 export type CardId = string;
 
+/** Dificuldades do jogo ('custom' deriva a quantidade do tema de cartas). */
+export type GameDifficulty = 'easy' | 'medium' | 'hard' | 'custom';
+
 export interface MemoryCard {
   id:        CardId;
   pairId:    string;

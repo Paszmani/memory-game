@@ -4,7 +4,7 @@
     "slug": "memory-game-totem",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/sb-logo-icon.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -21,8 +21,8 @@
       "versionCode": 1,
       "userInterfaceStyle": "dark",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/sb-logo-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "foregroundImage": "./assets/app-icon-adaptive.png",
+        "backgroundColor": "#FFFFFF"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO"
@@ -31,7 +31,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/sb-logo-adaptive-icon.png",
+      "favicon": "./assets/favicon.png",
       "name": "Jogo da Memória Grupo SB",
       "shortName": "Memória",
       "description": "Jogo da memória personalizável para totem e web",
