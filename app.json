@@ -49,7 +49,8 @@
         }
       ],
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withWindowsLongPaths"
     ],
     "experiments": {
       "typedRoutes": true,

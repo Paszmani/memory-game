@@ -2,7 +2,7 @@ import { DEFAULT_THEME } from '@/constants/defaultTheme';
 import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { validateThemeInput } from '@/domain/theme/themeValidation';
 import { getJson, setJson, removeItem } from '@/services/storageService';
-import { CreateThemeInput, CustomTheme } from '@/types/theme';
+import { CreateThemeInput, CustomTheme, CustomThemeCard } from '@/types/theme';
 import { createId } from '@/utils/id';
 
 export async function getThemes(): Promise<CustomTheme[]> {
@@ -60,6 +60,34 @@ export async function clearCustomThemes(): Promise<void> {
 
 export async function getCustomThemes(): Promise<CustomTheme[]> {
   return getJson<CustomTheme[]>(STORAGE_KEYS.customThemes, []);
+}
+
+/**
+ * Grava temas de cartas vindos de um arquivo de tema exportado (settingsTransfer).
+ * Cada tema entra como NOVO (id/timestamps regerados) — importar o mesmo arquivo
+ * duas vezes duplica, de propósito: não sobrescreve o que o operador já tem.
+ * Sem validação estrita (o filtro/saneamento é feito na camada de import).
+ */
+export async function importCustomThemes(
+  incoming: { name: string; description?: string; cards: CustomThemeCard[] }[],
+): Promise<number> {
+  if (incoming.length === 0) return 0;
+
+  const existing = await getJson<CustomTheme[]>(STORAGE_KEYS.customThemes, []);
+  const now = new Date().toISOString();
+
+  const added: CustomTheme[] = incoming.map((theme) => ({
+    id: createId('theme'),
+    name: theme.name,
+    ...(theme.description ? { description: theme.description } : {}),
+    cards: theme.cards,
+    createdAt: now,
+    updatedAt: now,
+  }));
+
+  await setJson(STORAGE_KEYS.customThemes, [...added, ...existing]);
+
+  return added.length;
 }
 
 export async function updateCustomTheme(

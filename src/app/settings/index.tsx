@@ -73,7 +73,14 @@ export default function SettingsScreen() {
     importSettingsFile()
       .then((result) => {
         if (result.status === 'ok') {
-          return saveSettings(result.settings).then(() => toast('Tema importado e aplicado.', 'info'));
+          const cardsMsg =
+            result.importedCardThemes > 0
+              ? ` +${result.importedCardThemes} tema(s) de cartas.`
+              : '';
+
+          return saveSettings(result.settings)
+            .then(() => reloadThemes())
+            .then(() => toast(`Tema importado e aplicado.${cardsMsg}`, 'info'));
         }
         if (result.status === 'invalid') {
           toast('Arquivo inválido: use um JSON exportado pelo próprio jogo.', 'error');
@@ -229,7 +236,8 @@ export default function SettingsScreen() {
         >
           Salva toda a personalização visual (cores, textos, estilo das cartas, totem e campos
           do formulário) em um JSON para reaproveitar em outro evento ou máquina. Os temas de
-          cartas (pares/imagens) não entram no arquivo.
+          cartas personalizados (pares e imagens) vão junto no arquivo; ao importar, entram como
+          novos temas.
         </Text>
 
         <View style={styles.actions}>

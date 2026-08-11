@@ -14,30 +14,44 @@
  * No export cada imagem é EMBUTIDA como data-URI dentro do JSON; no import
  * ela é re-persistida no armazenamento local da plataforma de destino.
  *
- * Os TEMAS DE CARTAS (pares/imagens) ficam fora: são outro sistema
- * (themeService) com imagens pesadas no armazenamento local.
+ * Os TEMAS DE CARTAS (pares/imagens) também viajam: são outro sistema
+ * (themeService, chave `custom_themes`), mas o export anexa todos os temas
+ * personalizados sob a chave `cardThemes` no topo do JSON — invisível ao
+ * mergeSettings, que só lê as 7 chaves do AppSettings, então arquivos antigos
+ * (sem a chave) e builds antigas (que a ignoram) continuam compatíveis. As
+ * imagens de cada carta usam o mesmo esquema local das demais e passam pela
+ * mesma maquinária de embutir (export) / re-persistir (import).
  */
 
 import { Platform } from 'react-native';
 
 import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
+// API legada: le/grava qualquer esquema de URI (file://, content://) em base64
+// no Android — o que a API nova (new File().base64()) não faz de forma
+// confiável e era o motivo de as imagens não irem no export/import.
+import * as LegacyFileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 import { mergeSettings } from '@/services/settingsService';
+import { getCustomThemes, importCustomThemes } from '@/services/themeService';
 import {
   isIndexedDbImageUri,
   resolveWebImageUri,
   saveWebImageFromUri,
 } from '@/services/webImageStorage';
 import type { AppSettings } from '@/types/settings';
+import type { CustomTheme, CustomThemeCard } from '@/types/theme';
 
 export type ExportSettingsResult = 'downloaded' | 'shared' | 'unsupported';
 export type ImportSettingsResult =
-  | { status: 'ok'; settings: AppSettings }
+  | { status: 'ok'; settings: AppSettings; importedCardThemes: number }
   | { status: 'cancelled' }
   | { status: 'invalid' }
   | { status: 'unsupported' };
+
+/** JSON no disco: AppSettings no topo + temas de cartas sob `cardThemes`. */
+type ExportPayload = AppSettings & { cardThemes: CustomTheme[] };
 
 const FILE_NAME = 'memoria-tema.json';
 
@@ -125,17 +139,19 @@ async function toPortableUri(uri: string | undefined): Promise<string | undefine
       return await blobToDataUri(await (await fetch(resolved)).blob());
     }
 
-    if (uri.startsWith('file:')) {
-      const base64 = await new File(uri).base64();
+    // Nativo (Android/iOS): a API legada lê file:// E content:// — a nova só
+    // lê caminhos file:// gerenciados, e a imagem do ImagePicker às vezes vem
+    // como content://, o que fazia o export cair no `catch` e embutir a
+    // referência crua (que não existe em outro aparelho).
+    const base64 = await LegacyFileSystem.readAsStringAsync(uri, {
+      encoding: LegacyFileSystem.EncodingType.Base64,
+    });
 
-      return `data:${mimeFromUri(uri)};base64,${base64}`;
-    }
+    return `data:${mimeFromUri(uri)};base64,${base64}`;
   } catch {
     // Não derruba o export por causa de uma imagem: exporta a referência crua.
     return uri;
   }
-
-  return uri;
 }
 
 /**
@@ -163,29 +179,95 @@ async function persistImportedImage(dataUri: string, prefix: string): Promise<st
     const mime = match[1];
     const ext =
       mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : mime === 'image/gif' ? 'gif' : 'jpg';
-    const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-    const file = new File(Paths.document, `tema_${prefix}_${Date.now()}.${ext}`);
+    // Grava o base64 direto num arquivo durável (documentDirectory) via API
+    // legada — sem atob/Uint8Array (que falhava silenciosamente em alguns
+    // aparelhos). O arquivo sobrevive à limpeza do cache do ImagePicker.
+    const dir = LegacyFileSystem.documentDirectory ?? '';
+    const dest = `${dir}tema_${prefix}_${Date.now()}.${ext}`;
 
-    if (file.exists) file.delete();
-    file.create();
-    file.write(bytes);
+    await LegacyFileSystem.writeAsStringAsync(dest, match[2], {
+      encoding: LegacyFileSystem.EncodingType.Base64,
+    });
 
-    return file.uri;
+    return dest;
   } catch {
     return dataUri;
   }
 }
 
+// --- Temas de cartas: embutir imagens / sanear na leitura -------------------
+
+/** Embute a imagem de cada carta de cada tema como data-URI portátil. */
+async function toPortableCardThemes(themes: CustomTheme[]): Promise<CustomTheme[]> {
+  return Promise.all(
+    themes.map(async (theme) => ({
+      ...theme,
+      cards: await Promise.all(
+        theme.cards.map(async (card) => ({
+          ...card,
+          imageUri: await toPortableUri(card.imageUri),
+        })),
+      ),
+    })),
+  );
+}
+
+/**
+ * Re-persiste as imagens data-URI das cartas no armazenamento de destino.
+ * Prefixo único por carta (`card_t{ti}_c{ci}`): no nativo o nome do arquivo é
+ * `tema_<prefix>_<Date.now()>` e as gravações correm em paralelo — sem prefixo
+ * distinto, duas cartas gravadas no mesmo milissegundo colidiriam.
+ */
+async function restoreCardThemeImages(themes: CustomTheme[]): Promise<CustomTheme[]> {
+  return Promise.all(
+    themes.map(async (theme, ti) => ({
+      ...theme,
+      cards: await Promise.all(
+        theme.cards.map(async (card, ci) =>
+          card.imageUri?.startsWith('data:')
+            ? { ...card, imageUri: await persistImportedImage(card.imageUri, `card_t${ti}_c${ci}`) }
+            : card,
+        ),
+      ),
+    })),
+  );
+}
+
+/** Extrai temas de cartas do JSON cru, descartando formatos inválidos. */
+function extractCardThemes(obj: Record<string, unknown>): CustomTheme[] {
+  const raw = obj.cardThemes;
+
+  if (!Array.isArray(raw)) return [];
+
+  return raw.filter(
+    (theme): theme is CustomTheme =>
+      !!theme &&
+      typeof theme === 'object' &&
+      typeof (theme as CustomTheme).name === 'string' &&
+      Array.isArray((theme as CustomTheme).cards),
+  );
+}
+
+interface ParsedFile {
+  settings: AppSettings;
+  cardThemes: CustomTheme[];
+}
+
 /** Valida e mescla um JSON externo sobre os defaults (campo ausente não quebra). */
-function parseSettings(text: string): AppSettings | null {
+function parseFile(text: string): ParsedFile | null {
   try {
     const parsed: unknown = JSON.parse(text);
 
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
 
+    const obj = parsed as Record<string, unknown>;
+
     // Campo ausente cai no padrão (mesma regra do resolveTheme do Kiosk
     // Maze: um tema incompleto nunca quebra o app).
-    return mergeSettings(parsed as Partial<AppSettings>);
+    return {
+      settings: mergeSettings(obj as Partial<AppSettings>),
+      cardThemes: extractCardThemes(obj),
+    };
   } catch {
     return null;
   }
@@ -201,7 +283,12 @@ export async function exportSettingsFile(settings: AppSettings): Promise<ExportS
     ref.set(portable, await toPortableUri(ref.get(portable)));
   }
 
-  const json = JSON.stringify(portable, null, 2);
+  // Temas de cartas personalizados (o DEFAULT_THEME não vive em custom_themes,
+  // então não entra aqui) com as imagens de cada carta embutidas.
+  const cardThemes = await toPortableCardThemes(await getCustomThemes());
+
+  const payload: ExportPayload = { ...portable, cardThemes };
+  const json = JSON.stringify(payload, null, 2);
 
   if (isWebDocument()) {
     const blob = new Blob([json], { type: 'application/json' });
@@ -251,6 +338,27 @@ async function restoreImages(settings: AppSettings): Promise<AppSettings> {
   return settings;
 }
 
+/**
+ * Reidrata um arquivo já validado: re-persiste as imagens das settings E dos
+ * temas de cartas, grava os temas em custom_themes (sempre como novos) e
+ * devolve o resultado 'ok'. Persistir os temas aqui — e não na tela — mantém a
+ * mesma disciplina de efeito colateral já usada para as imagens das settings.
+ */
+async function finalizeImport(parsed: ParsedFile): Promise<ImportSettingsResult> {
+  const settings = await restoreImages(parsed.settings);
+
+  const restoredThemes = await restoreCardThemeImages(parsed.cardThemes);
+  const importedCardThemes = await importCustomThemes(
+    restoredThemes.map((theme) => ({
+      name: theme.name,
+      description: theme.description,
+      cards: theme.cards as CustomThemeCard[],
+    })),
+  );
+
+  return { status: 'ok', settings, importedCardThemes };
+}
+
 export async function importSettingsFile(): Promise<ImportSettingsResult> {
   if (isWebDocument()) {
     return new Promise((resolve) => {
@@ -267,8 +375,8 @@ export async function importSettingsFile(): Promise<ImportSettingsResult> {
           return;
         }
 
-        const settings = parseSettings(await file.text());
-        resolve(settings ? { status: 'ok', settings: await restoreImages(settings) } : { status: 'invalid' });
+        const parsed = parseFile(await file.text());
+        resolve(parsed ? await finalizeImport(parsed) : { status: 'invalid' });
       };
 
       // Nem todo ambiente dispara 'cancel'; quando dispara, avisamos.
@@ -293,8 +401,8 @@ export async function importSettingsFile(): Promise<ImportSettingsResult> {
   if (!uri) return { status: 'cancelled' };
 
   try {
-    const settings = parseSettings(await new File(uri).text());
-    return settings ? { status: 'ok', settings: await restoreImages(settings) } : { status: 'invalid' };
+    const parsed = parseFile(await new File(uri).text());
+    return parsed ? await finalizeImport(parsed) : { status: 'invalid' };
   } catch {
     return { status: 'invalid' };
   }
