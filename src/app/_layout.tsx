@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 
-import { Platform } from 'react-native';
-import { Stack } from 'expo-router';
+import { Platform, Pressable, Text } from 'react-native';
+import { Stack, router } from 'expo-router';
 import {
   SafeAreaProvider,
   initialWindowMetrics,
@@ -233,8 +233,35 @@ function WebThemeApplier() {
   return null;
 }
 
+/**
+ * Botão "voltar ao menu" das telas com header nativo, à DIREITA (o back nativo
+ * fica à esquerda; aqui ele é escondido e substituído por este). `router.back()`
+ * mantém a mesma navegação de antes — só muda a posição.
+ */
+function HeaderHomeButton({ color }: { color: string }) {
+  return (
+    <Pressable
+      onPress={() => router.back()}
+      hitSlop={10}
+      style={({ pressed }) => ({
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Text style={{ color, fontSize: 16, fontWeight: '700' }}>Início ›</Text>
+    </Pressable>
+  );
+}
+
 function AppStack() {
   const { settings } = useSettings();
+
+  const homeButtonOptions = {
+    headerBackVisible: false,
+    headerLeft: () => null,
+    headerRight: () => <HeaderHomeButton color={settings.ui.primaryColor} />,
+  } as const;
 
   return (
     <Stack
@@ -272,7 +299,7 @@ function AppStack() {
         options={{
           title: 'Personalizar',
           headerShown: true,
-          headerBackTitle: 'Início',
+          ...homeButtonOptions,
         }}
       />
 
@@ -281,7 +308,7 @@ function AppStack() {
         options={{
           title: 'Recordes',
           headerShown: true,
-          headerBackTitle: 'Início',
+          ...homeButtonOptions,
         }}
       />
 
@@ -290,7 +317,7 @@ function AppStack() {
         options={{
           title: 'Configurações',
           headerShown: true,
-          headerBackTitle: 'Início',
+          ...homeButtonOptions,
         }}
       />
     </Stack>

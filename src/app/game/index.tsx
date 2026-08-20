@@ -215,6 +215,19 @@ export default function GameScreen() {
 
         <View style={styles.container}>
           <View style={[styles.topBar, isLandscape && styles.topBarLandscape]}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.themeName,
+                {
+                  color: colors.text,
+                },
+              ]}
+            >
+              {selectedTheme.name}
+            </Text>
+
+            {/* Voltar ao menu: à direita, imediatamente à esquerda do Pausar. */}
             <Pressable
               onPress={handleGoHome}
               style={({ pressed }) => [
@@ -237,18 +250,6 @@ export default function GameScreen() {
                 ‹ Início
               </Text>
             </Pressable>
-
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.themeName,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
-              {selectedTheme.name}
-            </Text>
 
             {!game.isFinished && (
               <Pressable
