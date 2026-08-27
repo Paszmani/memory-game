@@ -166,11 +166,22 @@ export default function SettingsScreen() {
 
       <SectionCard title="Captura de leads">
         <ToggleSwitch
-          label="Pedir cadastro ao finalizar"
-          hint="Ao completar o jogo, um formulário pede nome, e-mail e telefone antes da tela de parabéns."
+          label="Ativar captura de leads"
+          hint="Exibe um formulário (nome, e-mail, telefone) para o jogador se cadastrar."
           value={settings.totem.leadCaptureEnabled === true}
           onToggle={(value) => updateSettings({ totem: { leadCaptureEnabled: value } })}
         />
+
+        {settings.totem.leadCaptureEnabled === true && (
+          <ToggleSwitch
+            label="Pedir antes de iniciar"
+            hint="O formulário aparece ao tocar em Jogar, antes da partida. Desligado: aparece ao finalizar, antes da tela de parabéns."
+            value={settings.totem.leadCaptureTiming === 'start'}
+            onToggle={(value) =>
+              updateSettings({ totem: { leadCaptureTiming: value ? 'start' : 'end' } })
+            }
+          />
+        )}
 
         <Text
           style={[

@@ -10,7 +10,8 @@ import { useResolvedImageUri } from '@/hooks/useResolvedImageUri';
 
 interface Props {
   card:        CardType;
-  onPress:     () => void;
+  /** Recebe o id da carta (o board passa um handler estável; ver MemoryBoard). */
+  onPress:     (cardId: string) => void;
   cardStyle:   CardStyleSettings;
   animSettings: Pick<AnimationSettings,
     'enabled' | 'flipStyle' | 'flipSpeedMs' | 'matchAnimation'>;
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export const MemoryCard = memo(({ card, onPress, cardStyle, animSettings, size }: Props) => {
+  const handlePress = () => onPress(card.id);
   const { enabled, flipStyle, flipSpeedMs, matchAnimation } = animSettings;
   const isVisible    = card.isFlipped || card.isMatched;
   const borderRadius = CARD_BORDER_RADIUS[cardStyle.shape] ?? 16;
@@ -30,8 +32,12 @@ export const MemoryCard = memo(({ card, onPress, cardStyle, animSettings, size }
 
   useEffect(() => {
     if (!enabled) { flipAnim.setValue(isVisible ? 1 : 0); return; }
+    // Driver nativo: a virada só anima opacity/transform (rotate/scale), roda a
+    // cada jogada e é a animação mais frequente — no driver nativo ela sai da
+    // thread JS e para de travar no Android. As animações de acerto (matchScale
+    // / matchGlow → shadowRadius) ficam no driver JS, em nós separados.
     Animated.timing(flipAnim, {
-      toValue: isVisible ? 1 : 0, duration: flipSpeedMs, useNativeDriver: false,
+      toValue: isVisible ? 1 : 0, duration: flipSpeedMs, useNativeDriver: true,
     }).start();
   }, [isVisible, flipAnim, enabled, flipSpeedMs]);
 
@@ -89,7 +95,7 @@ export const MemoryCard = memo(({ card, onPress, cardStyle, animSettings, size }
       ? flipAnim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] }) : 1;
 
     return (
-      <Pressable onPress={onPress} disabled={card.isMatched || isVisible} style={styles.wrapper}>
+      <Pressable onPress={handlePress} disabled={card.isMatched || isVisible} style={styles.wrapper}>
         <Animated.View style={[styles.relative, { width: size, height: size }, { transform: [{ scale: matchScale }] }, glowStyle]}>
           <Animated.View style={[styles.face, styles.abs, faceBase, { backgroundColor: cardStyle.backColor },
             { opacity: backOpacity, transform: [{ scale: typeof backScale === 'number' ? backScale : backScale as never }] }]}>
@@ -112,7 +118,7 @@ export const MemoryCard = memo(({ card, onPress, cardStyle, animSettings, size }
   const flipScale  = flipAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.05, 1] });
 
   return (
-    <Pressable onPress={onPress} disabled={card.isMatched || isVisible} style={styles.wrapper}>
+    <Pressable onPress={handlePress} disabled={card.isMatched || isVisible} style={styles.wrapper}>
       <Animated.View style={[
         styles.relative, { width: size, height: size },
         { transform: [{ scale: matchScale }] },

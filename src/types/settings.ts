@@ -145,6 +145,13 @@ export interface TotemSettings {
    */
   leadCaptureEnabled?: boolean;
 
+  /**
+   * Momento da captura: 'end' (padrão, ao finalizar a partida) ou 'start'
+   * (ao tocar em Jogar, antes da partida). Ausente = 'end' (comportamento
+   * antigo preservado para configurações já salvas).
+   */
+  leadCaptureTiming?: 'start' | 'end';
+
   /** Campos do formulário de lead (ausente/vazio = campos padrão). */
   leadFields?: LeadField[];
 }

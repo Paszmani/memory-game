@@ -255,7 +255,10 @@ export const MemoryBoard = memo(
               size={metrics.cardSize}
               cardStyle={cardStyle}
               animSettings={animSettings}
-              onPress={() => onFlip(card.id)}
+              // onFlip é estável (ver game/index.tsx) e o MemoryCard chama com
+              // o próprio id — sem closure nova por carta, o memo() preserva as
+              // cartas que não mudaram e só re-renderiza as viradas.
+              onPress={onFlip}
             />
           ))}
         </View>

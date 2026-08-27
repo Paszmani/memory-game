@@ -51,6 +51,8 @@ export default function GameScreen() {
 
   // Lead já enviado/pulado nesta partida — libera o modal de fim de jogo.
   const [leadHandled, setLeadHandled] = useState(false);
+  // Captura de lead ANTES da partida já resolvida (enviada ou pulada).
+  const [preLeadDone, setPreLeadDone] = useState(false);
 
   const selectedTheme = useMemo(
     () => themes.find((theme) => theme.id === selectedThemeId) ?? themes[0],
@@ -87,19 +89,34 @@ export default function GameScreen() {
     return false;
   }, [notifyActivity]);
 
-  // Depende de game.flipCard (não do objeto `game` inteiro, recriado a cada
-  // tick do cronômetro): mantém a identidade estável entre ticks e preserva o
-  // memo() do MemoryBoard — sem isso o tabuleiro re-renderiza a cada segundo.
-  const handleFlipCard = useCallback(
-    (cardId: string) => {
-      notifyActivity();
-      game.flipCard(cardId);
-    },
-    [game.flipCard, notifyActivity],
-  );
+  // handleFlipCard precisa ter identidade ESTÁVEL entre renders para o
+  // memo() do MemoryBoard/MemoryCard funcionar — do contrário toda virada (que
+  // recria game.flipCard, pois depende de `cards`) trocaria o onPress e
+  // re-renderizaria TODAS as cartas, não só as duas que mudaram. Guardamos as
+  // funções vivas em refs e mantemos o callback com deps vazias.
+  const flipRef = useRef(game.flipCard);
+  const activityRef = useRef(notifyActivity);
 
+  flipRef.current = game.flipCard;
+  activityRef.current = notifyActivity;
+
+  const handleFlipCard = useCallback((cardId: string) => {
+    activityRef.current();
+    flipRef.current(cardId);
+  }, []);
+
+  const leadCaptureOn = settings.totem.leadCaptureEnabled === true;
+  const captureBeforeStart =
+    leadCaptureOn && settings.totem.leadCaptureTiming === 'start';
+
+  // Captura ANTES de jogar: o formulário abre ao entrar no jogo, antes da
+  // partida. Enquanto não resolvido, o tabuleiro fica coberto pelo modal.
+  const showPreLeadForm = captureBeforeStart && !preLeadDone;
+
+  // Captura ao FINALIZAR só vale quando o momento não é 'start' (senão
+  // pediríamos o cadastro duas vezes na mesma partida).
   const showLeadForm =
-    game.isFinished && settings.totem.leadCaptureEnabled === true && !leadHandled;
+    game.isFinished && leadCaptureOn && !captureBeforeStart && !leadHandled;
 
   useEffect(() => {
     if (!game.isFinished || !selectedTheme || hasSavedRef.current) {
@@ -170,6 +187,13 @@ export default function GameScreen() {
 
     router.replace('/');
   }, []);
+
+  // Cadastro pré-jogo enviado/pulado: libera o tabuleiro e reinicia o baralho
+  // para uma partida limpa (o preview que correu atrás do modal é descartado).
+  const handlePreLeadDone = useCallback(() => {
+    setPreLeadDone(true);
+    handleRestart();
+  }, [handleRestart]);
 
   if (isLoading || !selectedTheme) {
     return (
@@ -334,6 +358,15 @@ export default function GameScreen() {
             />
           </View>
         </View>
+
+        {/* Captura ANTES da partida (ao tocar em Jogar). */}
+        <LeadFormModal
+          visible={showPreLeadForm}
+          moves={0}
+          elapsedSeconds={0}
+          themeName={selectedTheme.name}
+          onDone={handlePreLeadDone}
+        />
 
         <LeadFormModal
           visible={showLeadForm}

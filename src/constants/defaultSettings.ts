@@ -99,6 +99,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     kioskMode: false,
     showBranding: true,
     leadCaptureEnabled: false,
+    leadCaptureTiming: 'end',
     leadFields: DEFAULT_LEAD_FIELDS,
   },
 };
