@@ -3,7 +3,6 @@ import React, { useCallback, useRef, useState } from 'react';
 
 import {
   Animated,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AttractScreen } from '@/components/game/AttractScreen';
 import { AppButton } from '@/components/ui/AppButton';
 import { GradientBackground } from '@/components/ui/GradientBackground';
+import { LogoImage } from '@/components/ui/LogoImage';
 import { colors as baseColors, colors } from '@/constants/colors';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import { useAttractScreen } from '@/hooks/useAttractScreen';
@@ -166,7 +166,12 @@ export default function HomeScreen() {
           <View style={[styles.inner, { maxWidth: innerMax }]}>
             <View style={styles.hero}>
               {resolvedLogoUri ? (
-                <Image source={{ uri: resolvedLogoUri }} style={styles.logo} />
+                <LogoImage
+                  uri={resolvedLogoUri}
+                  height={90}
+                  maxWidth={260}
+                  borderRadius={22}
+                />
               ) : (
                 <Text style={[styles.logoEmoji, { color: colors.primary }]}>
                   {branding.accentEmoji}
@@ -326,11 +331,6 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: 'center',
     gap: 14,
-  },
-  logo: {
-    width: 90,
-    height: 90,
-    borderRadius: 22,
   },
   logoEmoji: {
     fontSize: 76,

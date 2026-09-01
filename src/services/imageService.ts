@@ -194,14 +194,16 @@ export async function pickAttractImage(): Promise<string | null> {
 
 /**
  * Logo:
- * quadrado para manter consistência visual.
+ * aceita QUALQUER proporção (sem recorte quadrado). Não passamos aspect/
+ * cropAspect e desligamos a edição para preservar a imagem original — o
+ * enquadramento é feito na exibição pelo componente LogoImage (altura fixa,
+ * largura pela proporção, com teto). maxWidth/maxHeight só limitam o maior
+ * lado (economia de armazenamento), mantendo a proporção.
  */
 export async function pickLogoImage(): Promise<string | null> {
   return pickImageFromLibrary({
-    aspect: [1, 1],
-    cropAspect: [1, 1],
     quality: 0.9,
-    allowsEditing: true,
+    allowsEditing: false,
     persistOnWeb: true,
     storagePrefix: 'logo',
     maxWidth: ICON_IMAGE_SIZE,

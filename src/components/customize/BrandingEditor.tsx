@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ImagePickerButton } from '@/components/customize/ImagePickerButton';
+import { LogoImage } from '@/components/ui/LogoImage';
 import { SaveBar } from '@/components/ui/SaveBar';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { useColors } from '@/hooks/useColors';
@@ -46,12 +47,11 @@ export const BrandingEditor = memo(({ value, onSave }: Props) => {
         ]}
       >
         {resolvedLogoUri ? (
-          <Image
-            source={{ uri: resolvedLogoUri }}
-            style={styles.previewLogo}
-            contentFit="cover"
-            transition={160}
-            cachePolicy="memory-disk"
+          <LogoImage
+            uri={resolvedLogoUri}
+            height={74}
+            maxWidth={220}
+            borderRadius={20}
           />
         ) : (
           <Text style={styles.previewEmoji}>{local.accentEmoji}</Text>
@@ -455,12 +455,6 @@ const styles = StyleSheet.create({
   finishPreview: {
     minHeight: 230,
     justifyContent: 'center',
-  },
-
-  previewLogo: {
-    width: 74,
-    height: 74,
-    borderRadius: 20,
   },
 
   previewEmoji: {
