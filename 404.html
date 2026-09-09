@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Jogo da Memória</title>
+  <meta name="theme-color" content="#0A0A0A">
+  <style>
+    body { background: #0A0A0A; display: flex; align-items: center;
+           justify-content: center; height: 100vh; margin: 0; }
+    p    { color: #FFD600; font-family: sans-serif; font-size: 18px; }
+  </style>
+  <script>
+    // Redireciona rotas SPA de volta para o index
+    // Referência: https://github.com/rafgraph/spa-github-pages
+    var seg = window.location.pathname
+      .split('/').slice(0, 2).join('/');
+    sessionStorage.redirect = window.location.href;
+    window.location.replace(seg + '/?p=1');
+  </script>
+</head>
+<body><p>Carregando...</p></body>
+</html>
