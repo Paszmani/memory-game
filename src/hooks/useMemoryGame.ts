@@ -17,6 +17,8 @@ export interface UseMemoryGameParams {
   flipDelayMs?: number;
   previewCardsOnStart?: boolean;
   previewCardsDurationMs?: number;
+  /** Tempo limite em segundos para completar. 0/ausente = sem limite. */
+  timeLimitSeconds?: number;
 }
 
 export interface UseMemoryGameReturn {
@@ -26,6 +28,8 @@ export interface UseMemoryGameReturn {
   isLocked: boolean;
   isPreviewing: boolean;
   isFinished: boolean;
+  /** Tempo limite esgotado antes de completar — derrota. */
+  isLost: boolean;
   /** Pausa (menu do jogo): congela o cronômetro e bloqueia viradas. */
   isPaused: boolean;
   flipCard: (cardId: string) => void;
@@ -76,6 +80,7 @@ export function useMemoryGame({
   flipDelayMs = DEFAULT_FLIP_DELAY_MS,
   previewCardsOnStart = true,
   previewCardsDurationMs = DEFAULT_PREVIEW_CARDS_DURATION_MS,
+  timeLimitSeconds = 0,
 }: UseMemoryGameParams): UseMemoryGameReturn {
   const {
     elapsedSeconds,
@@ -98,6 +103,7 @@ export function useMemoryGame({
   const [isLocked, setIsLocked] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [isLost, setIsLost] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   // O cronômetro só retoma se estava correndo quando pausou (1ª carta virada).
   const wasTimerRunningRef = useRef(false);
@@ -135,6 +141,7 @@ export function useMemoryGame({
       setSelectedIds([]);
       setMoves(0);
       setIsFinished(false);
+      setIsLost(false);
       setIsPaused(false);
       reset();
 
@@ -175,17 +182,45 @@ export function useMemoryGame({
     };
   }, [clearAllTimeouts]);
 
+  // Tempo limite: ao atingir o limite sem completar, a partida é perdida —
+  // congela o cronômetro e bloqueia o tabuleiro. Reaproveita elapsedSeconds
+  // (só avança após a 1ª virada), então o limite conta a partir do 1º toque.
+  useEffect(() => {
+    if (
+      timeLimitSeconds <= 0 ||
+      isFinished ||
+      isLost ||
+      isPreviewing ||
+      elapsedSeconds < timeLimitSeconds
+    ) {
+      return;
+    }
+
+    clearAllTimeouts();
+    stop();
+    setIsLocked(true);
+    setIsLost(true);
+  }, [
+    elapsedSeconds,
+    timeLimitSeconds,
+    isFinished,
+    isLost,
+    isPreviewing,
+    clearAllTimeouts,
+    stop,
+  ]);
+
   const restartGame = useCallback(() => {
     const nextDeck = createDeck(themeCards, pairCount);
     startDeck(nextDeck);
   }, [themeCards, pairCount, startDeck]);
 
   const pauseGame = useCallback(() => {
-    if (isFinished) return;
+    if (isFinished || isLost) return;
     wasTimerRunningRef.current = isRunning;
     setIsPaused(true);
     pause();
-  }, [isFinished, isRunning, pause]);
+  }, [isFinished, isLost, isRunning, pause]);
 
   const resumeGame = useCallback(() => {
     setIsPaused(false);
@@ -194,7 +229,7 @@ export function useMemoryGame({
 
   const flipCard = useCallback(
     (cardId: string) => {
-      if (isLocked || isPreviewing || isFinished || isPaused) {
+      if (isLocked || isPreviewing || isFinished || isLost || isPaused) {
         return;
       }
 
@@ -280,6 +315,7 @@ export function useMemoryGame({
       isLocked,
       isPreviewing,
       isFinished,
+      isLost,
       isPaused,
       isRunning,
       start,
@@ -295,6 +331,7 @@ export function useMemoryGame({
     isLocked,
     isPreviewing,
     isFinished,
+    isLost,
     isPaused,
     flipCard,
     restartGame,

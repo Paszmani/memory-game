@@ -11,15 +11,18 @@ import { formatSeconds } from '@/utils/format';
 interface Props {
   moves: number;
   elapsedSeconds: number;
+  /** Tempo limite (s). >0 transforma o cronômetro em contagem regressiva. */
+  timeLimitSeconds?: number;
   settings: Pick<GameBehaviorSettings, 'showTimer' | 'showMoves'>;
 }
 
 interface StatBoxProps {
   label: string;
   value: string;
+  valueColor?: string;
 }
 
-const StatBox = memo(({ label, value }: StatBoxProps) => {
+const StatBox = memo(({ label, value, valueColor }: StatBoxProps) => {
   const colors = useColors();
   const typography = useTypography();
   const { settings } = useAppSettings();
@@ -55,7 +58,7 @@ const StatBox = memo(({ label, value }: StatBoxProps) => {
           styles.boxValue,
           typography.black,
           {
-            color: colors.primary,
+            color: valueColor ?? colors.primary,
           },
         ]}
       >
@@ -67,10 +70,27 @@ const StatBox = memo(({ label, value }: StatBoxProps) => {
 
 StatBox.displayName = 'StatBox';
 
-export const GameHeader = memo(({ moves, elapsedSeconds, settings }: Props) => {
+export const GameHeader = memo(
+  ({ moves, elapsedSeconds, timeLimitSeconds, settings }: Props) => {
+  const colors = useColors();
+
+  // Com limite configurado, o cronômetro vira contagem regressiva (Restante);
+  // sem limite, mantém o tempo decorrido (Tempo). Reaproveita elapsedSeconds.
+  const hasLimit = (timeLimitSeconds ?? 0) > 0;
+  const remaining = Math.max(0, (timeLimitSeconds ?? 0) - elapsedSeconds);
+
+  const timerLabel = hasLimit ? 'Restante' : 'Tempo';
+  const timerValue = formatSeconds(hasLimit ? remaining : elapsedSeconds);
+  const timerColor = hasLimit && remaining <= 10 ? colors.danger : undefined;
+
   const items = [
     settings.showTimer && (
-      <StatBox key="timer" label="Tempo" value={formatSeconds(elapsedSeconds)} />
+      <StatBox
+        key="timer"
+        label={timerLabel}
+        value={timerValue}
+        valueColor={timerColor}
+      />
     ),
 
     settings.showMoves && (

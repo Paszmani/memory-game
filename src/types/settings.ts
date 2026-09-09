@@ -114,6 +114,13 @@ export interface GameBehaviorSettings {
   pairCount: number;
   showLabels: boolean;
   hintAfterSeconds: number;
+
+  /**
+   * Tempo limite (em segundos) para completar o jogo. 0 = sem limite.
+   * A contagem reaproveita o cronômetro da partida (começa na 1ª virada).
+   * Opcional para não quebrar configurações antigas já salvas.
+   */
+  timeLimitSeconds?: number;
 }
 
 /** Tipo de um campo do formulário de lead (mesmo modelo do Kiosk Maze). */

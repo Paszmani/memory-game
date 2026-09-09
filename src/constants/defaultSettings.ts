@@ -89,6 +89,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     pairCount: 8,
     showLabels: false,
     hintAfterSeconds: 0,
+    timeLimitSeconds: 0,
   },
 
   totem: {

@@ -16,10 +16,12 @@ interface Props {
   elapsedSeconds: number;
   onRestart: () => void;
   onGoHome: () => void;
+  /** Variante de derrota (tempo esgotado): muda título/mensagem/ícone/cor. */
+  defeat?: boolean;
 }
 
 export const GameFinishedModal = memo(
-  ({ visible, moves, elapsedSeconds, onRestart, onGoHome }: Props) => {
+  ({ visible, moves, elapsedSeconds, onRestart, onGoHome, defeat = false }: Props) => {
     const scaleAnim = useRef(new Animated.Value(0.86)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -45,6 +47,16 @@ export const GameFinishedModal = memo(
     const finishIconImageUri = useResolvedImageUri(
       settings.branding.finishIconImageUri,
     );
+
+    // Derrota (tempo esgotado): textos/ícone fixos e cor neutra, ignorando a
+    // imagem/ícone de vitória configurados pelo operador.
+    const displayTitle = defeat ? 'Tempo esgotado!' : finishTitle;
+    const displayMessage = defeat
+      ? 'Você não completou o jogo a tempo.'
+      : finishMessage;
+    const displayEmojiIcon = defeat ? '⏱️' : finishIcon;
+    const showImageIcon = !defeat && !!finishIconImageUri;
+    const accentColor = defeat ? colors.text : colors.primary;
 
     const cardStyle = useMemo(
       () => ({
@@ -104,7 +116,7 @@ export const GameFinishedModal = memo(
             ]}
           >
             <View style={styles.content}>
-              {finishIconImageUri ? (
+              {showImageIcon ? (
                 <View
                   style={[
                     styles.iconImageWrap,
@@ -122,25 +134,25 @@ export const GameFinishedModal = memo(
                     cachePolicy="memory-disk"
                   />
                 </View>
-              ) : finishIcon ? (
-                <Text style={styles.emoji}>{finishIcon}</Text>
+              ) : displayEmojiIcon ? (
+                <Text style={styles.emoji}>{displayEmojiIcon}</Text>
               ) : null}
 
-              {finishTitle.length > 0 && (
+              {displayTitle.length > 0 && (
                 <Text
                   style={[
                     styles.title,
                     typography.black,
                     {
-                      color: colors.primary,
+                      color: accentColor,
                     },
                   ]}
                 >
-                  {finishTitle}
+                  {displayTitle}
                 </Text>
               )}
 
-              {finishMessage.length > 0 && (
+              {displayMessage.length > 0 && (
                 <Text
                   style={[
                     styles.subtitle,
@@ -150,7 +162,7 @@ export const GameFinishedModal = memo(
                     },
                   ]}
                 >
-                  {finishMessage}
+                  {displayMessage}
                 </Text>
               )}
 

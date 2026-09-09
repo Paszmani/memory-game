@@ -73,10 +73,12 @@ export default function GameScreen() {
     flipDelayMs: gameBehavior.flipDelayMs,
     previewCardsOnStart: gameBehavior.previewCardsOnStart,
     previewCardsDurationMs: gameBehavior.previewCardsDurationMs,
+    timeLimitSeconds: gameBehavior.timeLimitSeconds ?? 0,
   });
 
   const { isActive, notifyActivity } = useAttractScreen({
-    enabled: settings.totem.attractScreenEnabled && !game.isFinished,
+    enabled:
+      settings.totem.attractScreenEnabled && !game.isFinished && !game.isLost,
     timeoutSeconds: settings.totem.attractTimeoutSeconds,
   });
 
@@ -137,10 +139,13 @@ export default function GameScreen() {
     void saveGameResult(result);
   }, [game.isFinished, game.moves, game.elapsedSeconds, selectedTheme]);
 
-  // Auto-reset do totem: só conta depois do formulário de lead (enviado ou
-  // pulado) — quem está preenchendo nunca é expulso pelo timer.
+  // Auto-reset do totem: conta ao encerrar a partida — vitória OU derrota por
+  // tempo. Na vitória só começa depois do formulário de lead (enviado ou
+  // pulado); quem está preenchendo nunca é expulso pelo timer.
   useEffect(() => {
-    if (!game.isFinished || showLeadForm) {
+    const gameOver = game.isFinished || game.isLost;
+
+    if (!gameOver || showLeadForm) {
       return;
     }
 
@@ -159,7 +164,12 @@ export default function GameScreen() {
         autoResetRef.current = null;
       }
     };
-  }, [game.isFinished, showLeadForm, settings.totem.autoResetAfterFinishSeconds]);
+  }, [
+    game.isFinished,
+    game.isLost,
+    showLeadForm,
+    settings.totem.autoResetAfterFinishSeconds,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -306,6 +316,7 @@ export default function GameScreen() {
               <GameHeader
                 moves={game.moves}
                 elapsedSeconds={game.elapsedSeconds}
+                timeLimitSeconds={gameBehavior.timeLimitSeconds}
                 settings={gameBehavior}
               />
             </View>
@@ -326,6 +337,7 @@ export default function GameScreen() {
                 <GameHeader
                   moves={game.moves}
                   elapsedSeconds={game.elapsedSeconds}
+                  timeLimitSeconds={gameBehavior.timeLimitSeconds}
                   settings={gameBehavior}
                 />
               </View>
@@ -377,7 +389,17 @@ export default function GameScreen() {
         />
 
         <GameFinishedModal
-          visible={game.isFinished && !showLeadForm}
+          visible={game.isFinished && !game.isLost && !showLeadForm}
+          moves={game.moves}
+          elapsedSeconds={game.elapsedSeconds}
+          onRestart={handleRestart}
+          onGoHome={handleGoHome}
+        />
+
+        {/* Derrota por tempo: mesma estrutura, variante de derrota. */}
+        <GameFinishedModal
+          visible={game.isLost}
+          defeat
           moves={game.moves}
           elapsedSeconds={game.elapsedSeconds}
           onRestart={handleRestart}

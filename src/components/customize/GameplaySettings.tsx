@@ -59,6 +59,18 @@ export const GameplaySettings = memo(({ value, onSave }: Props) => {
         formatValue={(v) => v === 0 ? 'Desligado' : `${v}s`}
       />
 
+      <SliderInput
+        label="Tempo limite para completar"
+        value={local.timeLimitSeconds ?? 0}
+        min={0}
+        max={600}
+        step={10}
+        onChange={(v) => update({ timeLimitSeconds: v })}
+        formatValue={(v) =>
+          v === 0 ? 'Sem limite' : `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`
+        }
+      />
+
       <ToggleSwitch
         label="Mostrar cronômetro"
         value={local.showTimer}
